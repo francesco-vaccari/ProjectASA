@@ -10,16 +10,16 @@ class Parcel{
         this.y = y
         this.carriedBy = carriedBy
         this.reward = reward
+        this.toRemove = false
     }
     print(){
         console.log('[PARC]\t', this.id, this.x, this.y, this.carriedBy, this.reward)
     }
     decreaseReward(){
-        this.reward--
+        this.reward = this.reward - 1
         if (this.reward === 0){
-            return true
+            this.toRemove = true
         }
-        return false
     }
 }
 
@@ -41,8 +41,10 @@ class Parcels{
     }
     updateRewards(){
         for (const parcel of this.array){
-            let toRemove = parcel.decreaseReward()
-            if(toRemove){
+            parcel.decreaseReward()
+        }
+        for (const parcel of this.array){
+            if(parcel.toRemove){
                 this.array.splice(this.array.indexOf(parcel), 1)
             }
         }
