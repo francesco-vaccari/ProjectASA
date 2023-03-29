@@ -10,16 +10,12 @@ class Parcel{
         this.y = y
         this.carriedBy = carriedBy
         this.reward = reward
-        this.toRemove = false
     }
     print(){
         console.log('[PARC]\t', this.id, this.x, this.y, this.carriedBy, this.reward)
     }
     decreaseReward(){
         this.reward = this.reward - 1
-        if (this.reward === 0){
-            this.toRemove = true
-        }
     }
 }
 
@@ -43,11 +39,7 @@ class Parcels{
         for (const parcel of this.array){
             parcel.decreaseReward()
         }
-        for (const parcel of this.array){
-            if(parcel.toRemove){
-                this.array.splice(this.array.indexOf(parcel), 1)
-            }
-        }
+        this.array = this.array.filter(parcel => parcel.reward > 0)
     }
     print(){
         console.log('\n///////[PARCEL LIST]///////')
@@ -95,9 +87,9 @@ client.socket.on('parcels sensing', (data) => {
 
 client.socket.on('parcels sensing', (data) => {
     if(syncingDone){
-        // console.log(data);
         for (const p of data){
             let res = parcels.add(new Parcel(p.id, p.x, p.y, p.carriedBy, p.reward))
         }
+        console.log(data);
     }
 });
