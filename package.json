@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@unitn-asa/deliveroo-js-client": "^0.0.24",
+    "update": "^0.7.4"
+  },
+  "type": "module"
+}
