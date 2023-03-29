@@ -101,4 +101,3 @@ client.socket.on('parcels sensing', (data) => {
         }
     }
 });
-
