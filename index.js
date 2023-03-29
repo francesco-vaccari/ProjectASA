@@ -148,7 +148,11 @@ class Map{
         let out = ''
         for (let col = this.n_cols-1; col >= 0; col--){
             for (let row = 0; row < this.n_rows; row++){
-                out += this.matrix[row][col] + ' '
+                if(this.matrix[row][col] === 0){
+                    out += '  '
+                } else {
+                    out += this.matrix[row][col] + ' '
+                }
             }
             out += '\n'
         }
@@ -174,3 +178,10 @@ function agentFunction(){
     map.print()
     agent.print()
 }
+
+// add support for no parcel decay
+// will have to look for what gives me that info
+
+// look for a way to understand when the 'tile' api stops sending info
+// so i can proceed as soon as possible with initialization
+// because in case of lower parcel decay or no parcel decay at all the initialization takes more time
