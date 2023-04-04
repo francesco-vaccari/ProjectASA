@@ -94,6 +94,14 @@ class OrderedParcelsId {
     removeParcelId(id) {
         this.elements.delete(id);
     }
+
+    getParcelId(id){
+        return this.elements.get(id);
+    }
+
+    getFirst(){
+        return this.elements.min();
+    }
 }
 
 class ParcelsManager {
@@ -158,6 +166,10 @@ class ParcelsManager {
             // this.parcels.print();
             // this.orderedParcelsId.print(this.parcels);
         }, decayTime)
+    }
+
+    getNearestParcel(){
+        return this.orderedParcelsId.getFirst()
     }
 }
 
@@ -244,7 +256,7 @@ class AgentsManager{
             for (const a of data){
                 this.agents.add(new Agent(a.id, a.name, a.x, a.y, a.score))
             }
-            this.agents.print()
+            // this.agents.print()
         })
     }
 

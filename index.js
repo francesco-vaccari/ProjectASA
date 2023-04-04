@@ -11,13 +11,16 @@ const map = new GameMap(client)
 const agentsManager = new AgentsManager(client)
 
 
-client.onAgentsSensing((data) => {
-    console.log(data)
-})
+function agentLoop(){
+    let nearestParcel
+    while(true){
+        nearestParcel = parcelsManager.getNearestParcel()
+        
+        // console.log('nearestParcel', nearestParcel, parcelsManager.parcels.getParcel(nearestParcel))
+    }
+}
 
-// setInterval(() => {
-// }, 1)
-
+agentLoop()
 
 
 
