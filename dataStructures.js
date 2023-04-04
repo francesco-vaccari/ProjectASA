@@ -60,8 +60,12 @@ class Parcels{
         console.log('////////////////////////////\n')
     }
 
-    getParcel(id) {
+    getParcelId(id) {
         return this.elements.get(id);
+    }
+
+    removeParcelId(id) {
+        this.elements.delete(id);
     }
 }
 
@@ -86,7 +90,7 @@ class OrderedParcelsId {
     print(parcels){
         console.log('\n///////[ORDERED PARCEL LIST]///////')
         this.elements.forEach(parcelId => {
-            parcels.getParcel(parcelId).print();
+            parcels.getParcelId(parcelId).print();
         });
         console.log('////////////////////////////\n')
     }
@@ -111,8 +115,8 @@ class ParcelsManager {
         this.orderedParcelsId = new OrderedParcelsId(
             (aId,bId) => aId === bId,
             (aId,bId) => {
-                let a = this.parcels.getParcel(aId) != undefined ? this.parcels.getParcel(aId).reward : null;
-                let b = this.parcels.getParcel(bId) != undefined ? this.parcels.getParcel(bId).reward : null;
+                let a = this.parcels.getParcelId(aId) != undefined ? this.parcels.getParcelId(aId).reward : null;
+                let b = this.parcels.getParcelId(bId) != undefined ? this.parcels.getParcelId(bId).reward : null;
                 return aId === bId || a === b ? 0
                     : (a < b ? 1 : -1);
             });
@@ -120,34 +124,54 @@ class ParcelsManager {
     }
 
     initParcelsSensing() {
-        let syncingDone = false
-        let firstUpdate = false
-        let secondUpdate = false
-        let thirdUpdate = false
-        this.client.onParcelsSensing(data => {
-            if(!syncingDone){
-                if(firstUpdate){
-                    if(!secondUpdate){
-                        secondUpdate = new Date().getTime()
-                    } else if (!thirdUpdate){
-                        thirdUpdate = new Date().getTime()
-                    } else {
-                        let decayTime = (thirdUpdate - secondUpdate) / 1000
-                        console.log('Parcel decay time:', decayTime)
-                        console.log('Rounded decay time:', Math.round(decayTime))
-                        syncingDone = true
-                        this.startTrackingParcelsDecaY(Math.round(decayTime)*1000)
-                        this.agentFunction()
-                    }
-                }
-                firstUpdate = true
-            }
-        });
-        //client.socket.remove
+
+
+        // parcelsSensins emits:
+        // - on decay, with decay
+        // - on agent move always, both on half step and on complete step
+
+        // I could start just doing what I need without keeping track of parcels that I don't see
+        // just updating my list with only the emits of parcelsSensing
+        // and only when i understand wheter there is decay i can start tracking it and keeping all parcels in memory
+
+
+        this.startStoringParcels()
     }
+
+    // old version
+    // initParcelsSensing() {
+    //     let syncingDone = false
+    //     let firstUpdate = false
+    //     let secondUpdate = false
+    //     let thirdUpdate = false
+    //     this.client.onParcelsSensing(data => {
+    //         if(!syncingDone){
+    //             if(firstUpdate){
+    //                 if(!secondUpdate){
+    //                     secondUpdate = new Date().getTime()
+    //                 } else if (!thirdUpdate){
+    //                     thirdUpdate = new Date().getTime()
+    //                 } else {
+    //                     let decayTime = (thirdUpdate - secondUpdate) / 1000
+    //                     console.log('Parcel decay time:', decayTime)
+    //                     console.log('Rounded decay time:', Math.round(decayTime))
+    //                     syncingDone = true
+    //                     this.startTrackingParcelsDecaY(Math.round(decayTime)*1000)
+    //                     this.startStoringParcels()
+    //                 }
+    //             }
+    //             firstUpdate = true
+    //         }
+    //     });
+    //     //client.socket.remove
+    // }
     
-    agentFunction(){
+    startStoringParcels(){
         this.client.onParcelsSensing(data => {
+            //clear parcel and orderedParcelsId
+            this.parcels.elements.clear()
+            this.orderedParcelsId.elements.clear()
+            
             for (const p of data){
                 this.parcels.add(new Parcel(p.id, p.x, p.y, p.carriedBy, p.reward))
                 this.orderedParcelsId.add(p.id);
@@ -186,7 +210,7 @@ class You{
                 this.score = data.score
                 agentInitialized = true
             }
-            this.print()
+            // this.print()
         });
     }
     print(){

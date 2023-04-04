@@ -11,21 +11,9 @@ const map = new GameMap(client)
 const agentsManager = new AgentsManager(client)
 
 
-function agentLoop(){
-    let nearestParcel
-    while(true){
-        nearestParcel = parcelsManager.getNearestParcel()
-        
-        // console.log('nearestParcel', nearestParcel, parcelsManager.parcels.getParcel(nearestParcel))
-    }
-}
-
-agentLoop()
 
 
 
-// add support for no parcel decay
-// will have to look for what gives me that info
 
 // look for a way to understand when the 'tile' api stops sending info
 // so i can proceed as soon as possible with initialization
