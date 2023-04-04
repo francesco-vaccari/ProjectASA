@@ -60,11 +60,11 @@ class Parcels{
         console.log('////////////////////////////\n')
     }
 
-    getParcelId(id) {
+    getParcel(id) {
         return this.elements.get(id);
     }
 
-    removeParcelId(id) {
+    removeParcel(id) {
         this.elements.delete(id);
     }
 }
@@ -90,7 +90,7 @@ class OrderedParcelsId {
     print(parcels){
         console.log('\n///////[ORDERED PARCEL LIST]///////')
         this.elements.forEach(parcelId => {
-            parcels.getParcelId(parcelId).print();
+            parcels.getParcel(parcelId).print();
         });
         console.log('////////////////////////////\n')
     }
@@ -104,7 +104,7 @@ class OrderedParcelsId {
     }
 
     getFirst(){
-        return this.elements.min();
+        return this.elements.max();
     }
 }
 
@@ -115,10 +115,10 @@ class ParcelsManager {
         this.orderedParcelsId = new OrderedParcelsId(
             (aId,bId) => aId === bId,
             (aId,bId) => {
-                let a = this.parcels.getParcelId(aId) != undefined ? this.parcels.getParcelId(aId).reward : null;
-                let b = this.parcels.getParcelId(bId) != undefined ? this.parcels.getParcelId(bId).reward : null;
+                let a = this.parcels.getParcel(aId) != undefined ? this.parcels.getParcel(aId).reward : null;
+                let b = this.parcels.getParcel(bId) != undefined ? this.parcels.getParcel(bId).reward : null;
                 return aId === bId || a === b ? 0
-                    : (a < b ? 1 : -1);
+                    : (a > b ? 1 : -1);
             });
         this.initParcelsSensing();
     }
@@ -174,7 +174,9 @@ class ParcelsManager {
             
             for (const p of data){
                 this.parcels.add(new Parcel(p.id, p.x, p.y, p.carriedBy, p.reward))
-                this.orderedParcelsId.add(p.id);
+                if (p.carriedBy === null) {
+                    this.orderedParcelsId.add(p.id);
+                }
             }
             // this.parcels.print()
             // this.orderedParcelsId.print(this.parcels);
@@ -192,8 +194,8 @@ class ParcelsManager {
         }, decayTime)
     }
 
-    getNearestParcel(){
-        return this.orderedParcelsId.getFirst()
+    getBestParcel(){
+        return this.parcels.getParcel(this.orderedParcelsId.getFirst());
     }
 }
 
@@ -202,14 +204,12 @@ class You{
         this.client = client;
         let agentInitialized = false
         this.client.onYou(data => {
-            if (!agentInitialized){
-                this.id = data.id
-                this.name = data.name
-                this.x = data.x
-                this.y = data.y
-                this.score = data.score
-                agentInitialized = true
-            }
+            this.id = data.id
+            this.name = data.name
+            this.x = data.x
+            this.y = data.y
+            this.score = data.score
+            console.log(data);
             // this.print()
         });
     }
