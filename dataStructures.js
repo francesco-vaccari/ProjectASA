@@ -1,3 +1,4 @@
+import { truncate } from "fs";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const SortedArraySet = require("collections/sorted-array-set");
@@ -143,8 +144,8 @@ class ParcelsManager {
                 this.parcels.add(new Parcel(p.id, p.x, p.y, p.carriedBy, p.reward))
                 this.orderedParcelsId.add(p.id);
             }
-            this.parcels.print()
-            this.orderedParcelsId.print(this.parcels);
+            // this.parcels.print()
+            // this.orderedParcelsId.print(this.parcels);
         });
     }
     
@@ -154,13 +155,13 @@ class ParcelsManager {
             for (const id of removed) {
                 this.orderedParcelsId.removeParcelId(id);
             }
-            this.parcels.print();
-            this.orderedParcelsId.print(this.parcels);
+            // this.parcels.print();
+            // this.orderedParcelsId.print(this.parcels);
         }, decayTime)
     }
 }
 
-class Agent{
+class You{
     constructor(client, id, name, x, y, score){
         this.client = client;
         let agentInitialized = false
@@ -177,7 +178,7 @@ class Agent{
         });
     }
     print(){
-        console.log('[AGNT]\t', this.id, this.name, this.x, this.y, this.score)
+        console.log('[YOU]\t', this.id, this.name, this.x, this.y, this.score)
     }
     updatePosition(x, y){
         this.x = x
@@ -186,6 +187,67 @@ class Agent{
     updateScore(score){
         this.score = score
     }
+}
+
+class Agent{
+    constructor(id, name, x, y, score){
+        this.id = id
+        this.name = name
+        this.x = x
+        this.y = y
+        this.score = score
+        this.visible = true
+    }
+    
+    print(){
+        console.log('[AGENT]\t', this.id, this.name, this.x, this.y, this.score, this.visible)
+    }
+}
+
+class Agents{
+    constructor(){
+        this.elements = new Map()
+    }
+
+    print(){
+        console.log('\n///////[AGENT LIST]///////')
+        for (const agent of this.elements){
+            agent[1].print()
+        }
+        console.log('////////////////////////////\n')
+    }
+
+    setAllNonVisible(){
+        for (const agent of this.elements){
+            agent[1].visible = false
+        }
+    }
+
+    add(agent){
+        if(!this.elements.has(agent.id)){
+            this.elements.set(agent.id, agent)
+        } else {
+            this.elements.get(agent.id).visible = true
+            this.elements.get(agent.id).x = agent.x
+            this.elements.get(agent.id).y = agent.y
+            this.elements.get(agent.id).score = agent.score
+        }
+    }
+}
+
+class AgentsManager{
+    constructor(client){
+        this.client = client
+        this.agents = new Agents()
+        this.client.onAgentsSensing(data => {
+            this.agents.setAllNonVisible()
+            for (const a of data){
+                this.agents.add(new Agent(a.id, a.name, a.x, a.y, a.score))
+            }
+            this.agents.print()
+        })
+    }
+
 }
 
 class GameMap{
@@ -288,4 +350,4 @@ class Policy {
 
 }
 
-export { Parcel, Parcels, OrderedParcelsId, ParcelsManager, Agent, GameMap, Belief, Beliefs, Intention, Intentions, Desire, Desires, Percept, Action, Policy };
+export { Parcel, Parcels, OrderedParcelsId, ParcelsManager, AgentsManager, You, GameMap, Belief, Beliefs, Intention, Intentions, Desire, Desires, Percept, Action, Policy };
