@@ -209,7 +209,7 @@ class You{
             this.x = data.x
             this.y = data.y
             this.score = data.score
-            console.log(data);
+            // console.log(data);
             // this.print()
         });
     }
