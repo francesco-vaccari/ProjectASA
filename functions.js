@@ -145,6 +145,55 @@ class CellBFS{
     }
 }
 
+/**
+ * Computes the plan to get from the starting cell to the ending cell. Returns an array that contains the series of moves to perform.
+ * @param {Number} sx Starting cell x coordinate
+ * @param {Number} sy Starting cell y coordinate
+ * @param {Number} ex Ending cell x coordinate
+ * @param {Number} ey Ending cell y coordinate
+ * @param {GameMap} map GameMap object
+ * @returns {Array} Array of moves to perform
+ */
+function BFS(sx, sy, ex, ey, map){
+    let goal = new CellBFS(ex, ey)
+    let start = new CellBFS(sx, sy)
+    let queue = []
+    let explored = []
+    queue.push(start)
+    while(queue.length > 0){
+        
+        let current = queue.shift()
+
+        explored.push(current)
+        // console.log('------------------\nexplored', explored)
+        // console.log('queue', queue)
+        // console.log('current', current)
+
+        if(current.x === goal.x && current.y === goal.y){
+            return PlanBFS(start, goal, explored)
+        }
+
+        let children = []
+        if(computeChild(new CellBFS(current.x - 1, current.y), map, explored, queue)){
+            children.push(new CellBFS(current.x - 1, current.y))
+        }
+        if(computeChild(new CellBFS(current.x + 1, current.y), map, explored, queue)){
+            children.push(new CellBFS(current.x + 1, current.y))
+        }
+        if(computeChild(new CellBFS(current.x, current.y - 1), map, explored, queue)){
+            children.push(new CellBFS(current.x, current.y - 1))
+        }
+        if(computeChild(new CellBFS(current.x, current.y + 1), map, explored, queue)){
+            children.push(new CellBFS(current.x, current.y + 1))
+        }
+
+        children.forEach((child) => {
+            queue.push(child)
+            child.parentx = current.x
+            child.parenty = current.y
+        })
+    }
+}
 
 function computeChild(child, map, explored, queue){
     if(child.x >= 0 && child.y >= 0 && child.x < map.n_rows && child.y < map.n_cols && map.matrix[child.x][child.y] !== 0){
@@ -164,46 +213,37 @@ function computeChild(child, map, explored, queue){
     }
 }
 
-function BFS(sx, sy, ex, ey, map){
-    let goal = new CellBFS(ex, ey)
-    let queue = []
-    let explored = []
-    queue.push(new CellBFS(sx, sy))
-    while(queue.length > 0){
-        
-        let current = queue.shift()
-
-        explored.push(current)
-        // console.log('------------------\nexplored', explored)
-        // console.log('queue', queue)
-        // console.log('current', current)
-
-        if(current.x === goal.x && current.y === goal.y){
-            return explored
+function PlanBFS(start, goal, explored){
+    let plan = []
+    let current = new CellBFS(goal.x, goal.y)
+    explored.forEach((cell) => {
+        if(current.x === cell.x && current.y === cell.y){
+            current.parentx = cell.parentx
+            current.parenty = cell.parenty
         }
-
-        let children = []
-        if(computeChild(new CellBFS(current.x - 1, current.y), map, explored, queue)){
-            children.push(new CellBFS(current.x - 1, current.y))
-        }
-        if(computeChild(new CellBFS(current.x + 1, current.y), map, explored, queue)){
-            children.push(new CellBFS(current.x + 1, current.y))
-        }
-        if(computeChild(new CellBFS(current.x, current.y - 1), map, explored, queue)){
-            children.push(new CellBFS(current.x, current.y - 1))
-        }
-        if(computeChild(new CellBFS(current.x, current.y + 1), map, explored, queue)){
-            children.push(new CellBFS(current.x, current.y + 1))
-        }
-        // console.log('children', children)
-
-        children.forEach((child) => {
-            // console.log(child)
-            queue.push(child)
-            child.parentx = current.x
-            child.parenty = current.y
+    })
+    while(current.x !== start.x || current.y !== start.y){
+        let temp = new CellBFS(-1, -1)
+        explored.forEach((cell) => {
+            if(cell.x === current.parentx && cell.y === current.parenty){
+                temp.x = cell.x
+                temp.y = cell.y
+                temp.parentx = cell.parentx
+                temp.parenty = cell.parenty
+            }
         })
+        if(current.x > temp.x && current.y === temp.y){
+            plan.push('right')
+        } else if(current.x < temp.x && current.y === temp.y){
+            plan.push('left')
+        } else if(current.x === temp.x && current.y > temp.y){
+            plan.push('up')
+        } else if(current.x === temp.x && current.y < temp.y){
+            plan.push('down')
+        }
+        current = temp
     }
+    return plan.reverse()
 }
 
 
