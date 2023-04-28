@@ -23,7 +23,6 @@ class Parcel{
 }
 
 class Parcels{
-
     constructor(){
         this.elements = new Map();
     }
@@ -36,10 +35,6 @@ class Parcels{
         return add;
     }
 
-    /**
-     * 
-     * @returns {Array}
-     */
     updateRewards(){
         let removed = [];
         for (const parcel of this.elements){
@@ -70,7 +65,6 @@ class Parcels{
 }
 
 class OrderedParcelsId {
-
     constructor(equals,compare) {
         this.elements = new SortedArraySet({},equals,compare);
     }
@@ -83,10 +77,6 @@ class OrderedParcelsId {
         return add;
     }
 
-    /**
-     * 
-     * @param {Parcels} parcels 
-     */
     print(parcels){
         console.log('\n///////[ORDERED PARCEL LIST]///////')
         this.elements.forEach(parcelId => {
@@ -120,55 +110,11 @@ class ParcelsManager {
                 return aId === bId || a === b ? 0
                     : (a > b ? 1 : -1);
             });
-        this.initParcelsSensing();
+        this.startStoringParcels();
     }
 
-    initParcelsSensing() {
-
-
-        // parcelsSensins emits:
-        // - on decay, with decay
-        // - on agent move always, both on half step and on complete step
-
-        // I could start just doing what I need without keeping track of parcels that I don't see
-        // just updating my list with only the emits of parcelsSensing
-        // and only when i understand wheter there is decay i can start tracking it and keeping all parcels in memory
-
-
-        this.startStoringParcels()
-    }
-
-    // old version
-    // initParcelsSensing() {
-    //     let syncingDone = false
-    //     let firstUpdate = false
-    //     let secondUpdate = false
-    //     let thirdUpdate = false
-    //     this.client.onParcelsSensing(data => {
-    //         if(!syncingDone){
-    //             if(firstUpdate){
-    //                 if(!secondUpdate){
-    //                     secondUpdate = new Date().getTime()
-    //                 } else if (!thirdUpdate){
-    //                     thirdUpdate = new Date().getTime()
-    //                 } else {
-    //                     let decayTime = (thirdUpdate - secondUpdate) / 1000
-    //                     console.log('Parcel decay time:', decayTime)
-    //                     console.log('Rounded decay time:', Math.round(decayTime))
-    //                     syncingDone = true
-    //                     this.startTrackingParcelsDecaY(Math.round(decayTime)*1000)
-    //                     this.startStoringParcels()
-    //                 }
-    //             }
-    //             firstUpdate = true
-    //         }
-    //     });
-    //     //client.socket.remove
-    // }
-    
     startStoringParcels(){
         this.client.onParcelsSensing(data => {
-            //clear parcel and orderedParcelsId
             this.parcels.elements.clear()
             this.orderedParcelsId.elements.clear()
             
@@ -178,20 +124,7 @@ class ParcelsManager {
                     this.orderedParcelsId.add(p.id);
                 }
             }
-            // this.parcels.print()
-            // this.orderedParcelsId.print(this.parcels);
         });
-    }
-    
-    startTrackingParcelsDecaY(decayTime){
-        setInterval(() => {
-            const removed = this.parcels.updateRewards();
-            for (const id of removed) {
-                this.orderedParcelsId.removeParcelId(id);
-            }
-            // this.parcels.print();
-            // this.orderedParcelsId.print(this.parcels);
-        }, decayTime)
     }
 
     getBestParcel(){
@@ -209,8 +142,6 @@ class You{
             this.x = data.x
             this.y = data.y
             this.score = data.score
-            // console.log(data);
-            // this.print()
         });
     }
     print(){
@@ -280,7 +211,6 @@ class AgentsManager{
             for (const a of data){
                 this.agents.add(new Agent(a.id, a.name, a.x, a.y, a.score))
             }
-            // this.agents.print()
         })
     }
 
@@ -344,46 +274,4 @@ class GameMap{
     }
 }
 
-class Belief {
-
-}
-
-class Beliefs {
-
-}
-
-class Intention {
-
-}
-
-class Intentions {
-
-}
-
-class Desire {
-
-}
-
-class Desires {
-
-}
-
-/**
- * Combination of perceptions of the environment
- */
-class Percept {
-
-}
-
-class Action {
-
-}
-
-/**
- * Plan (series of Action)
- */
-class Policy {
-
-}
-
-export { Parcel, Parcels, OrderedParcelsId, ParcelsManager, AgentsManager, You, GameMap, Belief, Beliefs, Intention, Intentions, Desire, Desires, Percept, Action, Policy };
+export { Parcel, Parcels, OrderedParcelsId, ParcelsManager, AgentsManager, You, GameMap };

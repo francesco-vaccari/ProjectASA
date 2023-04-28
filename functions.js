@@ -1,45 +1,4 @@
-import { Belief, Beliefs, Desire, Desires, Intention, Intentions, Parcel, Parcels, Percept, Action, Policy, OrderedParcelsId } from "./dataStructures.js";
-
-/**
- * Beliefs revision
- * @param {Beliefs} beliefs 
- * @param {Percept} percept 
- * @returns {Beliefs}
- */
-function brf(beliefs, percept) {
-    return null;
-}
-
-/**
- * 
- * @param {Beliefs} beliefs 
- * @param {Intentions} intentions 
- * @returns {Desires}
- */
-function options(beliefs,intentions) {
-    return null;
-}
-
-/**
- * 
- * @param {Beliefs} beliefs 
- * @param {Desires} desires 
- * @param {Intentions} intentions 
- * @returns {Intentions}
- */
-function filter(beliefs,desires,intentions) {
-    return null;
-}
-
-/**
- * 
- * @param {Beliefs} beliefs 
- * @param {Intentions} intentions 
- * @returns {Policy}
- */
-function plan(beliefs,intentions) {
-    return null;
-}
+import {  } from "./dataStructures.js";
 
 function computeManhattanDistance(x1, y1, x2, y2){
     return Math.abs(x1 - x2) + Math.abs(y1 - y2)
@@ -50,7 +9,6 @@ class Cell{
         this.x = x
         this.y = y
         this.g = 1
-        // this.h = computeManhattanDistance(this.x, this.y, ex, ey)
         this.h = 0
         this.f = 0
     }
@@ -69,7 +27,6 @@ function Astar(sx, sy, ex, ey, map){
     openList.push(current)
 
     while(openList.length > 0){
-        // console.log(openList)
         current = openList[0]
         for(let i = 0; i < openList.length; i++){
             if(openList[i].f < current.f){
@@ -91,10 +48,6 @@ function Astar(sx, sy, ex, ey, map){
         }
 
         neighbours = []
-        // console.log('map')
-        // map.print()
-        // console.log('asffsa', current.x, current.y)
-        // console.log('matrix', map.matrix[current.x][current.y])
         if(current.x - 1 >= 0 && map.matrix[current.x - 1][current.y] !== 0){
             neighbours.push(new Cell(current.x - 1, current.y, ex, ey))
         }
@@ -165,9 +118,6 @@ function BFS(sx, sy, ex, ey, map){
         let current = queue.shift()
 
         explored.push(current)
-        // console.log('------------------\nexplored', explored)
-        // console.log('queue', queue)
-        // console.log('current', current)
 
         if(current.x === goal.x && current.y === goal.y){
             return PlanBFS(start, goal, explored)

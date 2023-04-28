@@ -22,28 +22,9 @@ setTimeout(async () => {
     while(true){
         await client.pickup()
         if (you.x % 1 == 0 && you.y % 1 == 0){
-            // console.log(parcelsManager.getBestParcel())
             let bestParcel = parcelsManager.getBestParcel()
             if (bestParcel !== undefined) {
-                // you.print()
-                // console.log(bestParcel.x, bestParcel.y)
                 console.log("calculating path to parcel")
-                // let path = Astar(you.x, you.y, bestParcel.x, bestParcel.y, map)
-                // console.log(path.length)
-                // let plan = []
-                // let lastx = you.x
-                // let lasty = you.y
-                // for (const cell of path) {
-                //     let move = ""
-                //     if(lastx < cell.x && lasty == cell.y) move = "right"
-                //     else if(lastx > cell.x && lasty == cell.y) move = "left"
-                //     else if(lasty < cell.y && lastx == cell.x) move = "up"
-                //     else if(lasty > cell.y && lastx == cell.x) move = "down"
-                //     lastx = cell.x
-                //     lasty = cell.y
-                //     plan.push(move)
-                // }
-                // console.log(plan)
 
                 let plan = BFS(you.x, you.y, bestParcel.x, bestParcel.y, map)
 
@@ -77,20 +58,6 @@ setTimeout(async () => {
                         }
 
                         console.log('calculating path to border')
-                        // let path = Astar(you.x, you.y, best_x, best_y, map)
-                        // let plan = []
-                        // let lastx = you.x
-                        // let lasty = you.y
-                        // for (const cell of path) {
-                        //     let move = ""
-                        //     if(lastx < cell.x && lasty == cell.y) move = "right"
-                        //     else if(lastx > cell.x && lasty == cell.y) move = "left"
-                        //     else if(lasty < cell.y && lastx == cell.x) move = "up"
-                        //     else if(lasty > cell.y && lastx == cell.x) move = "down"
-                        //     lastx = cell.x
-                        //     lasty = cell.y
-                        //     plan.push(move)
-                        // }
                         let plan = BFS(you.x, you.y, best_x, best_y, map)
                         console.log(plan)
                         while(plan.length > 0){
@@ -120,4 +87,3 @@ setTimeout(async () => {
 
 // look for a way to understand when the 'tile' api stops sending info
 // so i can proceed as soon as possible with initialization
-// because in case of lower parcel decay or no parcel decay at all the initialization takes more time
