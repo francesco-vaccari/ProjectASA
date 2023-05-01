@@ -1,7 +1,6 @@
-import { truncate } from "fs";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const SortedArraySet = require("collections/sorted-array-set");
+import { createRequire } from "module"
+const require = createRequire(import.meta.url)
+const SortedArraySet = require("collections/sorted-array-set")
 
 class Parcel{
     constructor( id, x, y, carriedBy, reward ){
@@ -99,8 +98,9 @@ class OrderedParcelsId {
 }
 
 class ParcelsManager {
-    constructor(client) {
+    constructor(client, verbose=false) {
         this.client = client;
+        this.verbose = verbose;
         this.parcels = new Parcels();
         this.orderedParcelsId = new OrderedParcelsId(
             (aId,bId) => aId === bId,
@@ -124,6 +124,10 @@ class ParcelsManager {
                     this.orderedParcelsId.add(p.id);
                 }
             }
+            if (this.verbose){
+                this.parcels.print();
+                this.orderedParcelsId.print(this.parcels);
+            }
         });
     }
 
@@ -133,15 +137,18 @@ class ParcelsManager {
 }
 
 class You{
-    constructor(client, id, name, x, y, score){
+    constructor(client, verbose=false){
         this.client = client;
-        let agentInitialized = false
+        this.verbose = verbose;
         this.client.onYou(data => {
             this.id = data.id
             this.name = data.name
             this.x = data.x
             this.y = data.y
             this.score = data.score
+            if(this.verbose){
+                this.print()
+            }
         });
     }
     print(){
@@ -203,13 +210,17 @@ class Agents{
 }
 
 class AgentsManager{
-    constructor(client){
+    constructor(client, verbose=false){
         this.client = client
+        this.verbose = verbose
         this.agents = new Agents()
         this.client.onAgentsSensing(data => {
             this.agents.setAllNonVisible()
             for (const a of data){
                 this.agents.add(new Agent(a.id, a.name, a.x, a.y, a.score))
+            }
+            if (this.verbose){
+                this.agents.print()
             }
         })
     }
@@ -217,8 +228,9 @@ class AgentsManager{
 }
 
 class GameMap{
-    constructor(client){
+    constructor(client, verbose=false){
         this.client = client;
+        this.verbose = verbose;
         let x_list = []
         let y_list = []
         let delivery_list = []
@@ -230,7 +242,9 @@ class GameMap{
         setTimeout(() => {
             this.n_rows = Math.max.apply(null, x_list)+1
             this.n_cols = Math.max.apply(null, y_list)+1
-            console.log('Map size: ', this.n_rows, this.n_cols)
+            if (this.verbose){
+                console.log('Map size: ', this.n_rows, this.n_cols)
+            }
             this.matrix = []
             for (let i = 0; i < this.n_rows; i++){
                 this.matrix.push([])
@@ -251,8 +265,10 @@ class GameMap{
                     }
                 }
             }
-            console.log('Map initialized')
-            this.print();
+            if (this.verbose){
+                console.log('Map initialized')
+                this.print();
+            }
         }, 1000)
 
     }
@@ -274,4 +290,4 @@ class GameMap{
     }
 }
 
-export { Parcel, Parcels, OrderedParcelsId, ParcelsManager, AgentsManager, You, GameMap };
+export { ParcelsManager, You, AgentsManager, GameMap }

@@ -1,89 +1,72 @@
-import { DeliverooApi, timer } from "@unitn-asa/deliveroo-js-client";
-import { default as config } from "./config.js";
-import { You, GameMap, ParcelsManager, AgentsManager } from "./dataStructures.js";
-import { Astar, computeManhattanDistance, BFS } from "./functions.js";
-
+import { DeliverooApi, timer } from "@unitn-asa/deliveroo-js-client"
+import { default as config } from "./config.js"
 const client = new DeliverooApi( config.host, config.token )
 
-const parcelsManager = new ParcelsManager(client)
-const you = new You(client)
-const map = new GameMap(client)
-const agentsManager = new AgentsManager(client)
+import { You, GameMap, ParcelsManager, AgentsManager } from "./beliefs.js";
+const agent = new You(client, false)
+const map = new GameMap(client, false)
+const parcelsManager = new ParcelsManager(client, false)
+const agentsManager = new AgentsManager(client, false)
 
-function directionString () {
-    if (directionIndex > 3)
-        directionIndex = directionIndex % 4;
-    return [ 'up', 'right', 'down', 'left' ][ directionIndex ];
+
+import { computeManhattanDistance, BFS } from "./util.js";
+
+
+
+var plan = ['up', 'left', 'down', 'pickup', 'putdown', 'right', 'left', 'down', 'up', 'pickup', 'left', 'right', 'down', 'putdown', 'right', 'left', 'down', 'up', 'up', 'down']
+var lastAction = undefined
+var ready = true
+
+console.log(plan)
+
+function agentControlLoop(){
+    setTimeout(async () => {
+        setInterval(async () => {
+            if(ready && plan.length > 0){
+                console.log('READY')
+                ready = false
+                lastAction = plan[0]
+                console.log('\tACTION ' + lastAction)
+                
+                if(lastAction == 'up' || lastAction == 'down' || lastAction == 'left' || lastAction == 'right'){
+                    client.move(lastAction).then((res) => {
+                        console.log('\tRESULT ' + res)
+                        ready = true
+                    })
+                } else if(lastAction == 'pickup'){
+                    await client.pickup().then(() => {
+                        console.log('\tDONE')
+                        ready = true
+                    })
+                } else if(lastAction == 'putdown'){
+                    await client.putdown().then(() => {
+                        console.log('\tDONE')
+                        ready = true
+                    })
+                } else {
+                    console.log('ERROR')
+                    ready = true
+                }
+                plan.shift()
+            }
+        }, 1)
+    }, 1000)
 }
 
-var directionIndex = 0
+// ora bisogna solo scrivere il codice che va a calcolare il plan continuamente e l'agente semplicemente esegue
 
-setTimeout(async () => {
-    while(true){
-        await client.pickup()
-        if (you.x % 1 == 0 && you.y % 1 == 0){
-            let bestParcel = parcelsManager.getBestParcel()
-            if (bestParcel !== undefined) {
-                console.log("calculating path to parcel")
-
-                let plan = BFS(you.x, you.y, bestParcel.x, bestParcel.y, map)
-
-                while(plan.length > 0){
-                    await client.pickup()
-                    let move = plan.shift()
-                    let res = false
-                    while(!res){
-                        res = await client.move(move)
-                    }
-                }
-                
-                let done = false
-                while(!done){
-                    await client.pickup()
-                    if(you.x % 1 == 0 && you.y % 1 == 0){
-                        let minDistance = 100000
-                        let best_x = 0
-                        let best_y = 0
-                        for(let i = 0; i < map.n_cols; i++){
-                            for(let j = 0; j < map.n_rows; j++){
-                                if(map.matrix[i][j] == 2){
-                                    let tempDist = computeManhattanDistance(i, j, you.x, you.y)
-                                    if(tempDist < minDistance){
-                                        minDistance = tempDist
-                                        best_x = i
-                                        best_y = j
-                                    }
-                                }
-                            }
-                        }
-
-                        console.log('calculating path to border')
-                        let plan = BFS(you.x, you.y, best_x, best_y, map)
-                        console.log(plan)
-                        while(plan.length > 0){
-                            await client.pickup()
-                            let move = plan.shift()
-                            let res = false
-                            while(!res){
-                                res = await client.move(move)
-                            }
-                        }
-                        await client.putdown()
-                        done = true
-                    }
-                }
-                
-            } else {
-                directionIndex += [0,1,3][ Math.floor(Math.random()*3) ];
-                var status = await client.move( directionString() )
-                if (!status) {
-                    directionIndex += [2,1,3][ Math.floor(Math.random()*3) ];
-                }
-            }
-        }
-    }
-}, 2000)
+agentControlLoop()
 
 
-// look for a way to understand when the 'tile' api stops sending info
-// so i can proceed as soon as possible with initialization
+
+// BDI ARCHITECTURE
+
+// BDI:
+//  - belief/knowledge
+//  - desire: current more complex goal (or just intention)
+//  - intention: current plan to achieve the desire (or just plan)
+
+// The idea is to have the agent to always perform the first action in the plan which is an array.
+// Asynchronously the plan is being recomputed non stop, so that the agent can always have a plan to follow.
+// The plan is recomputed based on the current beliefs which are also asynchronously updated.
+
