@@ -1,4 +1,4 @@
-function computeManhattanDistance(x1, y1, x2, y2){
+function ManhattanDistance(x1, y1, x2, y2){
     return Math.abs(x1 - x2) + Math.abs(y1 - y2)
 }
 
@@ -112,4 +112,4 @@ function BFS(sx, sy, ex, ey, map){
     }
 }
 
-export { computeManhattanDistance, BFS }
+export { ManhattanDistance, BFS }

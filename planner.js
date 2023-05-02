@@ -1,14 +1,4 @@
-import { computeManhattanDistance, BFS } from "./util.js";
-
-class CellMap{
-    constructor(x, y, walkable, deliverable){
-        this.x = x
-        this.y = y
-        this.walkable = walkable
-        this.deliverable = deliverable
-        this.score = 0
-    }
-}
+import { ManhattanDistance, BFS } from "./util.js";
 
 class Planner{
     constructor(map, verbose=false){
@@ -28,18 +18,29 @@ class Planner{
     async startPlanning(){
         this.plan = []
         while(true){
-            let n = Math.floor(Math.random() * 4)
-            let direction = ''
-            if (n == 0){
-                direction = 'up'
-            } else if (n == 1){
-                direction = 'down'
-            } else if (n == 2){
-                direction = 'left'
-            } else if (n == 3){
-                direction = 'right'
-            }
-            this.plan = [direction]
+
+
+
+
+            // let n = Math.floor(Math.random() * 4)
+            // let direction = ''
+            // if (n == 0){
+            //     direction = 'up'
+            // } else if (n == 1){
+            //     direction = 'down'
+            // } else if (n == 2){
+            //     direction = 'left'
+            // } else if (n == 3){
+            //     direction = 'right'
+            // }
+            // this.plan = [direction]
+
+            /*
+            for each cell in the matrix compute the heuristic score
+            pick the cell with highest score
+            compute path with BFS/PDDL to that cell
+            set plan to that path
+            */
             await new Promise(res => setImmediate(res))
         }
     }

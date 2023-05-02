@@ -1,0 +1,32 @@
+(define (domain deliveroo)
+    (:requirements :strips)
+    (:predicates (inParcel ?parcel ?x ?y) (inAgent ?agent ?x ?y) (has ?agent ?parcel) (wall ?x ?y) (deliverable ?x ?y) (normal ?x ?y))
+    (:action move
+        :parameters (?agent ?xfrom ?yfrom ?xto ?yto)
+        :precondition (and (inAgent ?agent ?xfrom ?yfrom) (not (wall ?xto ?yto)))
+        :effect (and (inAgent ?agent ?xto ?yto) (not (inAgent ?agent ?xfrom ?yfrom)) (not (wall ?xfrom ?yfrom)) (wall ?xto ?yto))
+    )
+
+    (:action pickup
+        :parameters (?agent ?parcel ?x ?y)
+        :precondition (and (inAgent ?agent ?x ?y) (inParcel ?parcel ?x ?y))
+        :effect (and (has ?agent ?parcel) (not (inParcel ?parcel ?x ?y)))
+    )
+
+    (:action putdown
+        :parameters (?agent ?parcel ?x ?y)
+        :precondition (and (has ?agent ?parcel) (inAgent ?agent ?x ?y) (deliverable ?x ?y)) 
+        :effect (and (not (has ?agent ?parcel)) (inParcel ?parcel ?x ?y))
+    )
+)
+
+
+
+
+
+(define (problem BFS)
+    (:domain deliveroo)
+    (:objects agent parcel)
+    (:init (normal 0 0) (normal 0 1) (normal 1 0) (deliverable 1 1) (inAgent agent 0 0) (wall 0 0) (inParcel parcel 0 1))
+    (:goal (inParcel parcel 1 1))
+)
