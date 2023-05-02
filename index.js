@@ -8,20 +8,20 @@ const map = new GameMap(client, false)
 const parcelsManager = new ParcelsManager(client, false)
 const agentsManager = new AgentsManager(client, false)
 
+import { Planner } from "./planner.js";
+const planner = new Planner(map, false)
 
-import { computeManhattanDistance, BFS } from "./util.js";
 
 
-
-var plan = ['up', 'left', 'down', 'pickup', 'putdown', 'right', 'left', 'down', 'up', 'pickup', 'left', 'right', 'down', 'putdown', 'right', 'left', 'down', 'up', 'up', 'down']
+var plan = []
 var lastAction = undefined
 var ready = true
 
-console.log(plan)
 
 function agentControlLoop(){
     setTimeout(async () => {
-        setInterval(async () => {
+        while(true){
+            plan = planner.getPlan()
             if(ready && plan.length > 0){
                 console.log('READY')
                 ready = false
@@ -55,13 +55,13 @@ function agentControlLoop(){
                         ready = true
                         break;
                 }
+
                 plan.shift()
             }
-        }, 1)
+            await new Promise(res => setImmediate(res))
+        }
     }, 1000)
 }
-
-// ora bisogna solo scrivere il codice che va a calcolare il plan continuamente e l'agente semplicemente esegue
 
 agentControlLoop()
 

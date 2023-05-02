@@ -269,7 +269,7 @@ class GameMap{
                 console.log('Map initialized')
                 this.print();
             }
-        }, 1000)
+        }, 800)
 
     }
     print(){

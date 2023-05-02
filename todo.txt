@@ -1,0 +1,49 @@
+TODO
+- plan visualizer with better map
+- design heuristics
+- write planner
+
+
+
+There are 3 main intentions:
+1- move randomly/go towards center or corners in case there is no parcel visible and the agent is not carrying
+2- go pickup a parcel if there is one visible and the agent is not carrying
+3- decide which parcel go pickup if more are visible and the agent is not carrying
+4- decide wether it is worth to go pickup a parcel if the agent is carrying and a parcel is visible
+5- decide wether it is worth to go pickup a parcel if the agent is carrying and no parcel is visible (unlikely)
+6- when it is time to deliver a parcel, need to decide which is the best cell to deliver it
+
+
+Each cell is assigned a score. For example, with an empty map
+
+  2   2 2 2 2 2 2 2 
+  1 1 1   1 1       
+  1       1 1       
+2 1 1 1 1 1 1 1 1 2 
+  1       1 1   1   
+2 1 1 1 1 1 1   1 2 
+  1       1 1     2 
+2 1 1 1 1 1 1 1 1 2 
+  1       1 1       
+  2       2 2       
+
+we will have the following scores
+
+  0   0 0 0 0 0 0 0 
+  1 1 1   1 1       
+  1       2 2       
+0 1 2 3 3 3 3 2 1 0 
+  1       4 3   1   
+0 1 2 3 4 4 3   1 0 
+  1       3 3     0 
+0 1 2 2 2 2 2 2 1 0 
+  1       1 1       
+  0       0 0      
+
+and by choosing the maximum of these scores the agent will pick randomly one of the cells with score 4 going towards the center of the map.
+
+The score is computed as follows, probably each component will be multiplied by a coefficient. When talking about path length of the agent, if there is no path (blocked by agent) the length is set to a big number.
+
+normal cell: manhattanDistance to border + total score of parcels in the cell - path length to agent - path length to closest enemy agent if any
+
+delivery cell: total score of parcels carried by agent - path length to agent
