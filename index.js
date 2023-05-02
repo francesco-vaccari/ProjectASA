@@ -28,24 +28,32 @@ function agentControlLoop(){
                 lastAction = plan[0]
                 console.log('\tACTION ' + lastAction)
                 
-                if(lastAction == 'up' || lastAction == 'down' || lastAction == 'left' || lastAction == 'right'){
-                    client.move(lastAction).then((res) => {
-                        console.log('\tRESULT ' + res)
+                switch (lastAction) {
+                    case 'up':
+                    case 'down':
+                    case 'left':
+                    case 'right':
+                        client.move(lastAction).then((res) => {
+                            console.log('\tRESULT ' + res)
+                            ready = true
+                        })
+                        break;
+                    case 'pickup':
+                        await client.pickup().then(() => {
+                            console.log('\tDONE')
+                            ready = true
+                        })
+                        break;
+                    case 'putdown':
+                        await client.putdown().then(() => {
+                            console.log('\tDONE')
+                            ready = true
+                        })
+                        break;
+                    default:
+                        console.log('ERROR')
                         ready = true
-                    })
-                } else if(lastAction == 'pickup'){
-                    await client.pickup().then(() => {
-                        console.log('\tDONE')
-                        ready = true
-                    })
-                } else if(lastAction == 'putdown'){
-                    await client.putdown().then(() => {
-                        console.log('\tDONE')
-                        ready = true
-                    })
-                } else {
-                    console.log('ERROR')
-                    ready = true
+                        break;
                 }
                 plan.shift()
             }
