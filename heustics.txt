@@ -1,0 +1,28 @@
+HEURISTICS
+
+NORMAL CELL
++ path length to closest border cell
++ total score of parcels in the Cell
+- path length to Agent
+- path length to closest enemy agent if any (((1/(x+1) - 1 )* coeff)^2)
+
+
+
+DELIVERY CELL
++ total score of parcels carried by the Agent
+- path length to Agent
+
+
+
+
+A behaviour i noticed is that the agent sometimes keeps going in and out of a cell, this is because a very far away cell with highest 
+score is seen, but goes out of the agent's view when the plan to go to that cell is executed. This causes the plan to choose another 
+cell which makes the agent go into the previous in which the last very far away cell is seen again, causing the agent to get stuck in 
+a loop until a new high score cell breaks the agent out of the loop.
+
+This could be solved by either adding coefficients that make the agent prefer cells that are closer to it by for example subtracting 
+the path length to the second power. Or I can implement some kind of decading score for normal cells that are currently not seen by 
+the agent. This might solve the problem, and should also improve performance in very high speed and low vision environments. The decay 
+should follow the moves of the agent as a clock.
+
+This allows some kind of implementation of uncertainty.
