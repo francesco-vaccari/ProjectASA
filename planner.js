@@ -49,7 +49,7 @@ class Planner{
         }, 900)
     }
 
-    normalCellHeuristic(x, y, agent, parcelsManager, agentsManager){
+    normalCellHeuristic(x, y, map, agent, parcelsManager, agentsManager){
         let minDistanceToBorder = 100000
         let borderx = undefined
         let bordery = undefined
@@ -65,12 +65,29 @@ class Planner{
                 }
             }
         }
+
+        let parcelsRewardInCell = 0
+        for (const parcel of parcelsManager.parcels.elements){
+            if(parcel[1].x == x && parcel[1].y == y && parcel[1].carriedBy == null){
+                parcelsRewardInCell += parcel[1].reward
+            }
+        }
         
-        return minDistanceToBorder+1
+        return minDistanceToBorder + parcelsRewardInCell + 1
     }
 
-    deliveryCellHeuristic(x, y, agent, parcelsManager, agentsManager){
-        return 1
+    deliveryCellHeuristic(x, y, map, agent, parcelsManager, agentsManager){
+        let scoreParcelsCarriedByAgent = 0
+        for (const parcel of parcelsManager.parcels.elements){
+            if(parcel[1].carriedBy == agent.id){
+                scoreParcelsCarriedByAgent += parcel[1].reward
+            }
+        }
+
+        let distanceToAgent = BFS(x, y, agent.x, agent.y, map).length
+
+        
+        return scoreParcelsCarriedByAgent - distanceToAgent
     }
 
     async startPlanning(map, agentsManager, parcelsManager, agent){
@@ -80,36 +97,48 @@ class Planner{
             for (let i = 0; i < this.n_rows; i++){
                 for (let j = 0; j < this.n_cols; j++){
                     if(this.map[i][j] === 0){ // wall cell
-                        this.scoreMap[i][j] = 0
+                        this.scoreMap[i][j] = -1000000
                     } else if(this.map[i][j] === 1){ // normal cell
-                        this.scoreMap[i][j] = this.normalCellHeuristic(i, j, agent, parcelsManager, agentsManager)
+                        this.scoreMap[i][j] = this.normalCellHeuristic(i, j, map, agent, parcelsManager, agentsManager)
                     } else if(this.map[i][j] === 2){ // delivery cell
-                        this.scoreMap[i][j] = this.deliveryCellHeuristic(i, j, agent, parcelsManager, agentsManager)
+                        this.scoreMap[i][j] = this.deliveryCellHeuristic(i, j, map, agent, parcelsManager, agentsManager)
                     }
                 }
             }
 
-            let bestx = undefined
-            let besty = undefined
+            let target_x = undefined
+            let target_y = undefined
             let bestscore = -1
+            let intention = undefined
             for (let i = 0; i < this.n_rows; i++){
                 for (let j = 0; j < this.n_cols; j++){
                     if(this.scoreMap[i][j] > bestscore){
                         bestscore = this.scoreMap[i][j]
-                        bestx = i
-                        besty = j
+                        target_x = i
+                        target_y = j
+                        if(this.map[i][j] === 1){
+                            intention = 'pickup'
+                        } else if(this.map[i][j] === 2){
+                            intention = 'putdown'
+                        }
                     }
                 }
             }
 
-            this.plan = BFS(agent.x, agent.y, bestx, besty, map)
 
+            
+            this.plan = BFS(agent.x, agent.y, target_x, target_y, map)
             /*
-            for each cell in the matrix compute the heuristic score
-            pick the cell with highest score
-            compute path with BFS/PDDL to that cell
-            set plan to that path
+            Oggetti che ci sono:
+                - target_x
+                - target_y
+                - intention che può essere 'pickup' o 'putdown'
+                - agent che è istanza di You()
+                - map (non this.map) che è istanza di GameMap()
+                - parcelsManager che è istanza di ParcelsManager()
+                - agentsManager che è istanza di AgentsManager()
             */
+
             await new Promise(res => setImmediate(res))
         }
     }
@@ -123,7 +152,7 @@ class Planner{
         let out = ''
         for (let col = this.n_cols-1; col >= 0; col--){
             for (let row = 0; row < this.n_rows; row++){
-                if(this.scoreMap[row][col] == 0){
+                if(this.scoreMap[row][col] == -1000000){
                     out += '  '
                 } else {
                     out += this.scoreMap[row][col] + ' '
