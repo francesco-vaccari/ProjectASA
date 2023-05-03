@@ -143,8 +143,8 @@ class You{
         this.client.onYou(data => {
             this.id = data.id
             this.name = data.name
-            this.x = data.x
-            this.y = data.y
+            this.x = Math.round(data.x)
+            this.y = Math.round(data.y)
             this.score = data.score
             if(this.verbose){
                 this.print()
@@ -153,13 +153,6 @@ class You{
     }
     print(){
         console.log('[YOU]\t', this.id, this.name, this.x, this.y, this.score)
-    }
-    updatePosition(x, y){
-        this.x = x
-        this.y = y
-    }
-    updateScore(score){
-        this.score = score
     }
 }
 
@@ -217,7 +210,7 @@ class AgentsManager{
         this.client.onAgentsSensing(data => {
             this.agents.setAllNonVisible()
             for (const a of data){
-                this.agents.add(new Agent(a.id, a.name, a.x, a.y, a.score))
+                this.agents.add(new Agent(a.id, a.name, Math.round(a.x), Math.round(a.y), a.score))
             }
             if (this.verbose){
                 this.agents.print()
@@ -288,6 +281,16 @@ class GameMap{
         console.log(out)
         console.log('-------------------\n')
     }
+    getMatrix(){
+        return this.matrix
+    }
+    getRows(){
+        return this.n_rows
+    }
+    getCols(){
+        return this.n_cols
+    }
+    
 }
 
 export { ParcelsManager, You, AgentsManager, GameMap }

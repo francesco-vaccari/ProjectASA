@@ -4,12 +4,12 @@ const client = new DeliverooApi( config.host, config.token )
 
 import { You, GameMap, ParcelsManager, AgentsManager } from "./beliefs.js";
 const agent = new You(client, false)
-const map = new GameMap(client, false)
+const map = new GameMap(client, true)
 const parcelsManager = new ParcelsManager(client, false)
 const agentsManager = new AgentsManager(client, false)
 
 import { Planner } from "./planner.js";
-const planner = new Planner(map, false)
+const planner = new Planner(map, agentsManager, parcelsManager, agent, true)
 
 
 
@@ -23,10 +23,10 @@ function agentControlLoop(){
         while(true){
             plan = planner.getPlan()
             if(ready && plan.length > 0){
-                console.log('READY')
+                // console.log('READY')
                 ready = false
                 lastAction = plan[0]
-                console.log('\tACTION ' + lastAction)
+                // console.log('\tACTION ' + lastAction)
                 
                 switch (lastAction) {
                     case 'up':
@@ -34,24 +34,24 @@ function agentControlLoop(){
                     case 'left':
                     case 'right':
                         client.move(lastAction).then((res) => {
-                            console.log('\tRESULT ' + res)
+                            // console.log('\tRESULT ' + res)
                             ready = true
                         })
                         break;
                     case 'pickup':
                         await client.pickup().then(() => {
-                            console.log('\tDONE')
+                            // console.log('\tDONE')
                             ready = true
                         })
                         break;
                     case 'putdown':
                         await client.putdown().then(() => {
-                            console.log('\tDONE')
+                            // console.log('\tDONE')
                             ready = true
                         })
                         break;
                     default:
-                        console.log('ERROR')
+                        // console.log('ERROR')
                         ready = true
                         break;
                 }
