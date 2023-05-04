@@ -3,11 +3,12 @@ function ManhattanDistance(x1, y1, x2, y2){
 }
 
 class Cell{
-    constructor(x, y, parentx=-1, parenty=-1){
+    constructor(x, y, parentx=-1, parenty=-1, depth=0){
         this.x = x
         this.y = y
         this.parentx = parentx
         this.parenty = parenty
+        this.depth = depth
     }
     print(){
         console.log('Cell: ', this.x, this.y, this.parentx, this.parenty)
@@ -112,4 +113,43 @@ function BFS(sx, sy, ex, ey, map){
     }
 }
 
-export { ManhattanDistance, BFS }
+function PathLengthBFS(sx, sy, ex, ey, map){
+    let goal = new Cell(ex, ey)
+    let start = new Cell(sx, sy)
+    let queue = []
+    let explored = []
+    queue.push(start)
+    while(queue.length > 0){
+        
+        let current = queue.shift()
+
+        explored.push(current)
+
+        if(current.x === goal.x && current.y === goal.y){
+            return current.depth
+        }
+
+        let children = []
+        if(computeChild(new Cell(current.x - 1, current.y), map, explored, queue)){
+            children.push(new Cell(current.x - 1, current.y))
+        }
+        if(computeChild(new Cell(current.x + 1, current.y), map, explored, queue)){
+            children.push(new Cell(current.x + 1, current.y))
+        }
+        if(computeChild(new Cell(current.x, current.y - 1), map, explored, queue)){
+            children.push(new Cell(current.x, current.y - 1))
+        }
+        if(computeChild(new Cell(current.x, current.y + 1), map, explored, queue)){
+            children.push(new Cell(current.x, current.y + 1))
+        }
+
+        children.forEach((child) => {
+            queue.push(child)
+            child.parentx = current.x
+            child.parenty = current.y
+            child.depth = current.depth + 1
+        })
+    }
+}
+
+export { ManhattanDistance, BFS, PathLengthBFS }

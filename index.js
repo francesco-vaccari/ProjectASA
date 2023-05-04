@@ -17,7 +17,6 @@ var plan = []
 var lastAction = undefined
 var ready = true
 
-
 function agentControlLoop(){
     setTimeout(async () => {
         while(true){

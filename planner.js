@@ -1,4 +1,5 @@
-import { ManhattanDistance, BFS } from "./util.js";
+import { ManhattanDistance, BFS, PathLengthBFS } from "./util.js";
+import chalk from "chalk"
 
 class Planner{
     constructor(map, agentsManager, parcelsManager, agent, verbose=false){
@@ -44,6 +45,7 @@ class Planner{
             if(this.verbose){
                 setInterval(() => {
                     this.print(agent)
+                    console.log(this.intention)
                     // console.log(this.plan)
                 }, 100)
             }
@@ -69,21 +71,19 @@ class Planner{
         }
 
         let parcelsRewardInCell = 0
-        let parcelAndAgentInThisCell = false
         for (const parcel of parcelsManager.parcels.elements){
             if(parcel[1].x == x && parcel[1].y == y && parcel[1].carriedBy == null){
-                if(parcel[1].x == agent.x && parcel[1].y == agent.y){
-                    parcelAndAgentInThisCell = true
-                    parcelsRewardInCell += 1000000
-                }
+                // if(parcel[1].x == agent.x && parcel[1].y == agent.y){
+                //     parcelsRewardInCell += 1000000
+                // }
                 parcelsRewardInCell += parcel[1].reward
             }
         }
 
-        let distanceToAgent = 0
+        let distanceToAgent = 1
         if(parcelsRewardInCell != 0){
             // distanceToAgent = ManhattanDistance(x, y, agent.x, agent.y)
-            distanceToAgent = BFS(x, y, agent.x, agent.y, map).length
+            distanceToAgent =  Math.max(PathLengthBFS(x, y, agent.x, agent.y, map), 0.1)
         }
 
 
@@ -93,8 +93,12 @@ class Planner{
         //     let distanceToEnemy = ManhattanDistance(x, y, agent[1].x, agent[1].y)
         //     enemiesProximity += Math.pow((((1/(distanceToEnemy+1) - 1)) * enemiesProximityCoeff), 2)
         // }
-        
+
+
+        return Math.pow(parcelsRewardInCell, 1.2) / Math.pow(distanceToAgent, 1) + minDistanceToBorder/1000
         return Math.pow(parcelsRewardInCell, 1.2) + minDistanceToBorder/1000 - Math.pow(distanceToAgent, 2)
+        // la funzione per enemiesProximity va da pathLength +1 a infinito, ed è minima quando è 1 e massima quando è infinito
+        // aggiungere decaying score for not visible cells, only for parcelsRewardInThisCell
     }
 
     deliveryCellHeuristic(x, y, map, agent, parcelsManager, agentsManager){
@@ -105,11 +109,12 @@ class Planner{
             }
         }
 
-        let distanceToAgent = 0
+        let distanceToAgent = 1
         if(scoreParcelsCarriedByAgent != 0){
-            distanceToAgent = BFS(x, y, agent.x, agent.y, map).length
+            distanceToAgent = Math.max(PathLengthBFS(x, y, agent.x, agent.y, map), 0.1)
         }
 
+        return Math.pow(scoreParcelsCarriedByAgent, 0.8) / Math.pow(distanceToAgent, 1)
         return Math.pow(scoreParcelsCarriedByAgent, 0.8) - Math.pow(distanceToAgent, 1.2)
     }
 
@@ -150,7 +155,6 @@ class Planner{
 
 
             this.plan = BFS(agent.x, agent.y, target_x, target_y, map)
-            
             /*
             Oggetti che ci sono:
                 - target_x
@@ -172,7 +176,6 @@ class Planner{
 
     print(agent){
         console.log('\n-----[SCOREMAP]-----')
-        let out = ''
         let padding = 4
         let highestValue = -100000000
         let lowestValue = 100000000
@@ -192,20 +195,36 @@ class Planner{
         }
         for (let col = this.n_cols-1; col >= 0; col--){
             for (let row = 0; row < this.n_rows; row++){
+                let value = addPadding(Math.round(100*(this.scoreMap[row][col]-lowestValue)/(highestValue-lowestValue)), padding)
+                let shade = getColorHex(value)
+                let color = chalk.hex(shade)
                 if(agent.x == row && agent.y == col){
-                    out += addPadding('AGN', padding)
+                    process.stdout.write(chalk.bgBlue(color(value)))
                 } else if(this.map[row][col] == 0){
-                    out += addPadding('', padding)
+                    process.stdout.write(addPadding('', padding))
                 } else {
-                    out += addPadding(Math.round(100*(this.scoreMap[row][col]-lowestValue)/(highestValue-lowestValue)), padding)
+                    process.stdout.write(color(value))
                 }
             }
-            out += '\n\n'
+            process.stdout.write('\n\n')
         }
-        console.log(out)
-        console.log('-------------------\n')
+        process.stdout.write('-------------------\n')
     }
 }
+
+function getColorHex(value) {
+    value = Math.max(0, Math.min(100, value));
+    
+    const red = Math.floor((100 - value) * 255 / 100);
+    const green = Math.floor(value * 255 / 100);
+    
+    const redHex = red.toString(16).padStart(2, '0');
+    const greenHex = green.toString(16).padStart(2, '0');
+    const hexCode = '#' + redHex + greenHex + '00';
+    
+    return hexCode;
+  }
+  
 
 function addPadding(item, padding){
     let out = '' + item
