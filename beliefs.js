@@ -137,14 +137,14 @@ class ParcelsManager {
 }
 
 class You{
-    constructor(client, verbose=false){
+    constructor(client, control, verbose=false){
         this.client = client;
         this.verbose = verbose;
         this.client.onYou(data => {
             this.id = data.id
             this.name = data.name
-            this.x = Math.round(data.x)
-            this.y = Math.round(data.y)
+            this.x = control.lastAction == "left" ? Math.floor(data.x) : Math.ceil(data.x)
+            this.y = control.lastAction == "down" ? Math.floor(data.y) : Math.ceil(data.y)
             this.score = data.score
             if(this.verbose){
                 this.print()

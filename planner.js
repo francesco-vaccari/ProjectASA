@@ -1,38 +1,57 @@
-import { ManhattanDistance, BFS, PathLengthBFS } from "./util.js";
+import { AgentsManager, GameMap, ParcelsManager, You } from "./beliefs.js";
+import { ManhattanDistance, BFS, PathLengthBFS, readFile } from "./util.js";
+import { onlineSolver, PddlProblem, Beliefset } from "@unitn-asa/pddl-client";
 import chalk from "chalk"
 
 class Planner{
-    constructor(map, agentsManager, parcelsManager, agent, verbose=false){
-        setTimeout(() => {
+    /**
+     * 
+     * @param {GameMap} map 
+     * @param {AgentsManager} agentsManager 
+     * @param {ParcelsManager} parcelsManager 
+     * @param {You} agent 
+     * @param {boolean} verbose 
+     */
+    constructor(map, agentsManager, parcelsManager, agent, control, verbose=false){
+        setTimeout(async () => {
             this.n_rows = map.getRows()
             this.n_cols = map.getCols()
             this.map = []
             this.scoreMap = []
+            this.domain = await readFile('./domain.pddl' );
+            this.problem = null
+            this.baseBeliefset = new Beliefset()
+            this.plan = []
+            this.control = control
             this.verbose = verbose
+
+            let tmpCell,tmpValue;
 
             for (let i = 0; i < this.n_rows; i++){
                 this.map.push([])
-                for (let j = 0; j < this.n_cols; j++){
-                    this.map[i].push(0)
-                }
-            }
-
-            for (let i = 0; i < this.n_rows; i++){
                 this.scoreMap.push([])
                 for (let j = 0; j < this.n_cols; j++){
-                    this.scoreMap[i].push(0)
+                    this.map[i].push(map.getMatrix()[i][j]) //Initialize map
+                    this.scoreMap[i].push(0) //Initialize scoreMap
+                    if (map.getMatrix()[i][j] != 0) {
+                        this.baseBeliefset.declare("cell c_" + i + "_" + j) //pddl cell initialization
+                    }
                 }
             }
 
-            for (let i = 0; i < this.n_rows; i++){
-                for (let j = 0; j < this.n_cols; j++){
-                    this.map[i][j] = map.getMatrix()[i][j]
-                }
-            }
-
-            for (let i = 0; i < this.n_rows; i++){
-                for (let j = 0; j < this.n_cols; j++){
-                    this.scoreMap[i][j] = 0
+            for (const cell of this.baseBeliefset.objects) { //pddl cell edges initialization
+                tmpCell = cell.split("_")
+                for (let i = -1; i < 2; i+=2) {
+                    tmpValue = this.map[Number.parseInt(tmpCell[1]) + i]
+                    tmpValue = tmpValue != undefined ? tmpValue[tmpCell[2]] : undefined
+                    if (tmpValue != undefined && tmpValue != 0) {
+                        this.baseBeliefset.declare("near " + cell + " c_" + (Number.parseInt(tmpCell[1]) + i) + "_" + tmpCell[2])
+                    }
+                    tmpValue =  this.map[tmpCell[1]]
+                    tmpValue = tmpValue != undefined ? tmpValue[Number.parseInt(tmpCell[2]) + i] : undefined
+                    if (tmpValue != undefined && tmpValue != 0) {
+                        this.baseBeliefset.declare("near " + cell + " c_" + (tmpCell[1]) + "_" + (Number.parseInt(tmpCell[2]) + i))
+                    }
                 }
             }
 
@@ -117,9 +136,41 @@ class Planner{
         return Math.pow(scoreParcelsCarriedByAgent, 0.8) / Math.pow(distanceToAgent, 1)
         return Math.pow(scoreParcelsCarriedByAgent, 0.8) - Math.pow(distanceToAgent, 1.2)
     }
+    
+    translatePddl(pddlPlan) {
+        let plan = []
+        let from, to;
+        for (const action of pddlPlan) {
+            switch (action.action) {
+                case "move":
+                    from = action.args[0].split("_").slice(1);
+                    to = action.args[1].split("_").slice(1);
+                    if (to[0] - from[0] > 0) {
+                        plan.push("right")
+                    } else if (to[0] - from[0] < 0) {
+                        plan.push("left")
+                    } else if (to[1] - from[1] > 0) {
+                        plan.push("up")
+                    } else if (to[1] - from[1] < 0) {
+                        plan.push("down")
+                    }
+                    break;
+            }
+        }
+        return plan
+    }
 
+    /**
+     * 
+     * @param {GameMap} map 
+     * @param {AgentsManager} agentsManager 
+     * @param {ParcelsManager} parcelsManager 
+     * @param {You} agent 
+     */
     async startPlanning(map, agentsManager, parcelsManager, agent){
-        this.plan = []
+
+        let target_x, target_y, bestscore, intention, tmpBeliefset, tmpPlan
+
         while(true){
 
             for (let i = 0; i < this.n_rows; i++){
@@ -134,10 +185,10 @@ class Planner{
                 }
             }
 
-            let target_x = undefined
-            let target_y = undefined
-            let bestscore = -1
-            let intention = undefined
+            target_x = undefined
+            target_y = undefined
+            bestscore = -1
+            intention = undefined
             for (let i = 0; i < this.n_rows; i++){
                 for (let j = 0; j < this.n_cols; j++){
                     if(this.scoreMap[i][j] > bestscore && this.map[i][j] !== 0){
@@ -154,7 +205,36 @@ class Planner{
             }
 
 
-            this.plan = BFS(agent.x, agent.y, target_x, target_y, map)
+            
+            //this.plan = BFS(agent.x, agent.y, target_x, target_y, map));
+            //console.log("x:",agent.x,"->",target_x,"_ y:",agent.y,"->",target_y,"=",intention);
+            tmpPlan = []
+
+            if (this.control.ready) {
+                if (target_x != agent.x || target_y != agent.y) {
+                    tmpBeliefset = new Beliefset()
+                    for (const entry of this.baseBeliefset.entries) {
+                        tmpBeliefset.declare(entry[0])
+                    }
+                    for (const agent of agentsManager.agents.elements) {
+                        if (agent[1].visible) {
+                            tmpBeliefset.declare("cell c_" + agent[1].x + "_" + agent[1].y,false)
+                        }
+                    }
+                    tmpBeliefset.declare("in c_" + agent.x + "_" + agent.y)
+                    this.problem = new PddlProblem("BFS",
+                        tmpBeliefset.objects.join(' '),
+                        tmpBeliefset.toPddlString(),
+                        "in c_" + target_x + "_" + target_y)
+                    try {
+                        tmpPlan = this.translatePddl(await onlineSolver(this.domain,this.problem.toPddlString()))
+                    } catch (error) {
+                        console.log(this.problem.toPddlString());
+                    }
+                }
+                tmpPlan.push(intention)
+            }
+            this.plan = tmpPlan
             /*
             Oggetti che ci sono:
                 - target_x

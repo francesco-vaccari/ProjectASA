@@ -3,55 +3,59 @@ import { default as config } from "./config.js"
 const client = new DeliverooApi( config.host, config.token )
 
 import { You, GameMap, ParcelsManager, AgentsManager } from "./beliefs.js";
+import { Planner } from "./planner.js";
+
+var plan = []
+let control = {
+    ready: true,
+    lastAction: undefined
+}
+
 const agent = new You(client, false)
 const map = new GameMap(client, true)
 const parcelsManager = new ParcelsManager(client, false)
 const agentsManager = new AgentsManager(client, false)
-
-import { Planner } from "./planner.js";
-const planner = new Planner(map, agentsManager, parcelsManager, agent, true)
-
-
-
-var plan = []
-var lastAction = undefined
-var ready = true
+const planner = new Planner(map, agentsManager, parcelsManager, agent, control, false)
 
 function agentControlLoop(){
     setTimeout(async () => {
         while(true){
             plan = planner.getPlan()
-            if(ready && plan.length > 0){
+            if(control.ready && plan.length > 0){
                 // console.log('READY')
-                ready = false
-                lastAction = plan[0]
-                // console.log('\tACTION ' + lastAction)
+                control.ready = false
+                control.lastAction = plan[0]
+                // console.log('\tACTION ' + control.lastAction)
                 
-                switch (lastAction) {
+                switch (control.lastAction) {
                     case 'up':
                     case 'down':
                     case 'left':
                     case 'right':
-                        client.move(lastAction).then((res) => {
+                        console.log("Pre",control.lastAction);
+                        client.move(control.lastAction).then((res) => {
+                            console.log("Post",control.lastAction);
                             // console.log('\tRESULT ' + res)
-                            ready = true
+                            control.ready = true
                         })
                         break;
                     case 'pickup':
                         await client.pickup().then(() => {
                             // console.log('\tDONE')
-                            ready = true
+                            console.log("pickup");
+                            control.ready = true
                         })
                         break;
                     case 'putdown':
                         await client.putdown().then(() => {
                             // console.log('\tDONE')
-                            ready = true
+                            console.log("putdown");
+                            control.ready = true
                         })
                         break;
                     default:
                         // console.log('ERROR')
-                        ready = true
+                        control.ready = true
                         break;
                 }
 

@@ -1,3 +1,5 @@
+import fs from 'fs';
+
 function ManhattanDistance(x1, y1, x2, y2){
     return Math.abs(x1 - x2) + Math.abs(y1 - y2)
 }
@@ -113,6 +115,19 @@ function BFS(sx, sy, ex, ey, map){
     }
 }
 
+function readFile ( path ) {
+    
+    return new Promise( (res, rej) => {
+
+        fs.readFile( path, 'utf8', (err, data) => {
+            if (err) rej(err)
+            else res(data)
+        })
+
+    })
+
+}
+
 function PathLengthBFS(sx, sy, ex, ey, map){
     let goal = new Cell(ex, ey)
     let start = new Cell(sx, sy)
@@ -152,4 +167,4 @@ function PathLengthBFS(sx, sy, ex, ey, map){
     }
 }
 
-export { ManhattanDistance, BFS, PathLengthBFS }
+export { ManhattanDistance, BFS, PathLengthBFS, readFile }
