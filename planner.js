@@ -228,13 +228,11 @@ class Planner{
                         "in c_" + target_x + "_" + target_y)
                     try {
                         tmpPlan = this.translatePddl(await onlineSolver(this.domain,this.problem.toPddlString()))
-                    } catch (error) {
-                        console.log(this.problem.toPddlString());
-                    }
+                    } catch (error) {}
                 }
                 tmpPlan.push(intention)
+                this.plan = tmpPlan
             }
-            this.plan = tmpPlan
             /*
             Oggetti che ci sono:
                 - target_x
