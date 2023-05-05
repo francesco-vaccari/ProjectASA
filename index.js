@@ -32,9 +32,7 @@ function agentControlLoop(){
                     case 'down':
                     case 'left':
                     case 'right':
-                        console.log("Pre",control.lastAction);
                         client.move(control.lastAction).then((res) => {
-                            console.log("Post",control.lastAction);
                             // console.log('\tRESULT ' + res)
                             control.ready = true
                         })
@@ -42,14 +40,12 @@ function agentControlLoop(){
                     case 'pickup':
                         await client.pickup().then(() => {
                             // console.log('\tDONE')
-                            console.log("pickup");
                             control.ready = true
                         })
                         break;
                     case 'putdown':
                         await client.putdown().then(() => {
                             // console.log('\tDONE')
-                            console.log("putdown");
                             control.ready = true
                         })
                         break;
