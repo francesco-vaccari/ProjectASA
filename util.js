@@ -73,10 +73,10 @@ function PlanBFS(start, goal, explored){
  * @param {Number} ex Ending cell x coordinate
  * @param {Number} ey Ending cell y coordinate
  * @param {GameMap} map GameMap object
- * @param {AgentsManager} agentsManager AgentsManager object
+ * @param {Agents} agents Agents object
  * @returns {Array} Array of moves to perform
  */
-function BFS(sx, sy, ex, ey, map, agentsManager){
+function BFS(sx, sy, ex, ey, map, agents){
     let agentsMap = []
     for (let i = 0; i < map.n_rows; i++){
         agentsMap.push([])
@@ -84,21 +84,11 @@ function BFS(sx, sy, ex, ey, map, agentsManager){
             agentsMap[i].push(0)
         }
     }
-    // let out = ''
-    // for (let col = map.n_cols-1; col >= 0; col--){
-    //     for (let row = 0; row < map.n_rows; row++){
-    //         out += agentsMap[row][col] + ' '
-    //     }
-    //     out += '\n'
-    // }
-    // console.log(out)
-    if(agentsManager.agents.elements.length !== 0){
-        for (const agent of agentsManager.agents.elements){
-            // console.log(agent[1])
+    if(agents.getList().size > 0){
+        for (const agent of agents.getList()){
             agentsMap[agent[1].x][agent[1].y] = 1
         }
     }
-    
     let goal = new Cell(ex, ey)
     let start = new Cell(sx, sy)
     let queue = []
@@ -137,7 +127,7 @@ function BFS(sx, sy, ex, ey, map, agentsManager){
     return ['error']
 }
 
-function PathLengthBFS(sx, sy, ex, ey, map, agentsManager){
+function PathLengthBFS(sx, sy, ex, ey, map, agents){
     let agentsMap = []
     for (let i = 0; i < map.n_rows; i++){
         agentsMap.push([])
@@ -145,17 +135,8 @@ function PathLengthBFS(sx, sy, ex, ey, map, agentsManager){
             agentsMap[i].push(0)
         }
     }
-    // let out = ''
-    // for (let col = map.n_cols-1; col >= 0; col--){
-    //     for (let row = 0; row < map.n_rows; row++){
-    //         out += agentsMap[row][col] + ' '
-    //     }
-    //     out += '\n'
-    // }
-    // console.log(out)
-    if(agentsManager.agents.elements.length !== 0){
-        for (const agent of agentsManager.agents.elements){
-            // console.log(agent[1])
+    if(agents.getList().size > 0){
+        for (const agent of agents.getList()){
             agentsMap[agent[1].x][agent[1].y] = 1
         }
     }
@@ -195,7 +176,7 @@ function PathLengthBFS(sx, sy, ex, ey, map, agentsManager){
             child.depth = current.depth + 1
         })
     }
-    return 100000
+    return 1000
 }
 
 export { ManhattanDistance, BFS, PathLengthBFS }

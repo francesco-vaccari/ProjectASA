@@ -2,14 +2,14 @@ import { DeliverooApi, timer } from "@unitn-asa/deliveroo-js-client"
 import { default as config } from "./config.js"
 const client = new DeliverooApi( config.host, config.token )
 
-import { You, GameMap, ParcelsManager, AgentsManager } from "./beliefs.js";
+import { You, GameMap, Parcels, Agents } from "./beliefs.js";
 const agent = new You(client, false)
-const map = new GameMap(client, true)
-const parcelsManager = new ParcelsManager(client, false)
-const agentsManager = new AgentsManager(client, false)
+const map = new GameMap(client, false)
+const parcels = new Parcels(client, false)
+const agents = new Agents(client, false)
 
 import { Planner } from "./planner.js";
-const planner = new Planner(map, agentsManager, parcelsManager, agent, true)
+const planner = new Planner(map, agents, parcels, agent, false)
 
 
 
@@ -35,6 +35,7 @@ function agentControlLoop(){
                         client.move(lastAction).then((res) => {
                             // console.log('\tRESULT ' + res)
                             ready = true
+                            parcels.updateUncertainty()
                         })
                         break;
                     case 'pickup':
@@ -47,6 +48,7 @@ function agentControlLoop(){
                         await client.putdown().then(() => {
                             // console.log('\tDONE')
                             ready = true
+                            parcels.clearPutdownParcels(agent.id)
                         })
                         break;
                     default:
@@ -63,6 +65,7 @@ function agentControlLoop(){
 }
 
 agentControlLoop()
+
 
 
 
