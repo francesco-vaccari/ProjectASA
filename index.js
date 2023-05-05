@@ -3,59 +3,55 @@ import { default as config } from "./config.js"
 const client = new DeliverooApi( config.host, config.token )
 
 import { You, GameMap, ParcelsManager, AgentsManager } from "./beliefs.js";
-import { Planner } from "./planner.js";
-
-var plan = []
-let control = {
-    ready: true,
-    lastAction: undefined
-}
-
 const agent = new You(client, false)
 const map = new GameMap(client, true)
 const parcelsManager = new ParcelsManager(client, false)
 const agentsManager = new AgentsManager(client, false)
-const planner = new Planner(map, agentsManager, parcelsManager, agent, control, false)
+
+import { Planner } from "./planner.js";
+const planner = new Planner(map, agentsManager, parcelsManager, agent, true)
+
+
+
+var plan = []
+var lastAction = undefined
+var ready = true
 
 function agentControlLoop(){
     setTimeout(async () => {
         while(true){
             plan = planner.getPlan()
-            if(control.ready && plan.length > 0){
+            if(ready && plan.length > 0){
                 // console.log('READY')
-                control.ready = false
-                control.lastAction = plan[0]
-                // console.log('\tACTION ' + control.lastAction)
+                ready = false
+                lastAction = plan[0]
+                // console.log('\tACTION ' + lastAction)
                 
-                switch (control.lastAction) {
+                switch (lastAction) {
                     case 'up':
                     case 'down':
                     case 'left':
                     case 'right':
-                        console.log("Pre",control.lastAction);
-                        client.move(control.lastAction).then((res) => {
-                            console.log("Post",control.lastAction);
+                        client.move(lastAction).then((res) => {
                             // console.log('\tRESULT ' + res)
-                            control.ready = true
+                            ready = true
                         })
                         break;
                     case 'pickup':
                         await client.pickup().then(() => {
                             // console.log('\tDONE')
-                            console.log("pickup");
-                            control.ready = true
+                            ready = true
                         })
                         break;
                     case 'putdown':
                         await client.putdown().then(() => {
                             // console.log('\tDONE')
-                            console.log("putdown");
-                            control.ready = true
+                            ready = true
                         })
                         break;
                     default:
                         // console.log('ERROR')
-                        control.ready = true
+                        ready = true
                         break;
                 }
 
@@ -80,4 +76,3 @@ agentControlLoop()
 // The idea is to have the agent to always perform the first action in the plan which is an array.
 // Asynchronously the plan is being recomputed non stop, so that the agent can always have a plan to follow.
 // The plan is recomputed based on the current beliefs which are also asynchronously updated.
-

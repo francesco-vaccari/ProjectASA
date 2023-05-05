@@ -1,5 +1,3 @@
-import fs from 'fs';
-
 function ManhattanDistance(x1, y1, x2, y2){
     return Math.abs(x1 - x2) + Math.abs(y1 - y2)
 }
@@ -17,8 +15,8 @@ class Cell{
     }
 }
 
-function computeChild(child, map, explored, queue){
-    if(child.x >= 0 && child.y >= 0 && child.x < map.n_rows && child.y < map.n_cols && map.matrix[child.x][child.y] !== 0){
+function computeChild(child, map, explored, queue, agentsMap){
+    if(child.x >= 0 && child.y >= 0 && child.x < map.n_rows && child.y < map.n_cols && map.matrix[child.x][child.y] !== 0 && agentsMap[child.x][child.y] !== 1){
         let already_explored = false
         explored.forEach((cell) => {
             if(cell.x === child.x && cell.y === child.y){
@@ -75,9 +73,32 @@ function PlanBFS(start, goal, explored){
  * @param {Number} ex Ending cell x coordinate
  * @param {Number} ey Ending cell y coordinate
  * @param {GameMap} map GameMap object
+ * @param {AgentsManager} agentsManager AgentsManager object
  * @returns {Array} Array of moves to perform
  */
-function BFS(sx, sy, ex, ey, map){
+function BFS(sx, sy, ex, ey, map, agentsManager){
+    let agentsMap = []
+    for (let i = 0; i < map.n_rows; i++){
+        agentsMap.push([])
+        for (let j = 0; j < map.n_cols; j++){
+            agentsMap[i].push(0)
+        }
+    }
+    // let out = ''
+    // for (let col = map.n_cols-1; col >= 0; col--){
+    //     for (let row = 0; row < map.n_rows; row++){
+    //         out += agentsMap[row][col] + ' '
+    //     }
+    //     out += '\n'
+    // }
+    // console.log(out)
+    if(agentsManager.agents.elements.length !== 0){
+        for (const agent of agentsManager.agents.elements){
+            // console.log(agent[1])
+            agentsMap[agent[1].x][agent[1].y] = 1
+        }
+    }
+    
     let goal = new Cell(ex, ey)
     let start = new Cell(sx, sy)
     let queue = []
@@ -94,16 +115,16 @@ function BFS(sx, sy, ex, ey, map){
         }
 
         let children = []
-        if(computeChild(new Cell(current.x - 1, current.y), map, explored, queue)){
+        if(computeChild(new Cell(current.x - 1, current.y), map, explored, queue, agentsMap)){
             children.push(new Cell(current.x - 1, current.y))
         }
-        if(computeChild(new Cell(current.x + 1, current.y), map, explored, queue)){
+        if(computeChild(new Cell(current.x + 1, current.y), map, explored, queue, agentsMap)){
             children.push(new Cell(current.x + 1, current.y))
         }
-        if(computeChild(new Cell(current.x, current.y - 1), map, explored, queue)){
+        if(computeChild(new Cell(current.x, current.y - 1), map, explored, queue, agentsMap)){
             children.push(new Cell(current.x, current.y - 1))
         }
-        if(computeChild(new Cell(current.x, current.y + 1), map, explored, queue)){
+        if(computeChild(new Cell(current.x, current.y + 1), map, explored, queue, agentsMap)){
             children.push(new Cell(current.x, current.y + 1))
         }
 
@@ -113,22 +134,31 @@ function BFS(sx, sy, ex, ey, map){
             child.parenty = current.y
         })
     }
+    return ['error']
 }
 
-function readFile ( path ) {
-    
-    return new Promise( (res, rej) => {
-
-        fs.readFile( path, 'utf8', (err, data) => {
-            if (err) rej(err)
-            else res(data)
-        })
-
-    })
-
-}
-
-function PathLengthBFS(sx, sy, ex, ey, map){
+function PathLengthBFS(sx, sy, ex, ey, map, agentsManager){
+    let agentsMap = []
+    for (let i = 0; i < map.n_rows; i++){
+        agentsMap.push([])
+        for (let j = 0; j < map.n_cols; j++){
+            agentsMap[i].push(0)
+        }
+    }
+    // let out = ''
+    // for (let col = map.n_cols-1; col >= 0; col--){
+    //     for (let row = 0; row < map.n_rows; row++){
+    //         out += agentsMap[row][col] + ' '
+    //     }
+    //     out += '\n'
+    // }
+    // console.log(out)
+    if(agentsManager.agents.elements.length !== 0){
+        for (const agent of agentsManager.agents.elements){
+            // console.log(agent[1])
+            agentsMap[agent[1].x][agent[1].y] = 1
+        }
+    }
     let goal = new Cell(ex, ey)
     let start = new Cell(sx, sy)
     let queue = []
@@ -145,16 +175,16 @@ function PathLengthBFS(sx, sy, ex, ey, map){
         }
 
         let children = []
-        if(computeChild(new Cell(current.x - 1, current.y), map, explored, queue)){
+        if(computeChild(new Cell(current.x - 1, current.y), map, explored, queue, agentsMap)){
             children.push(new Cell(current.x - 1, current.y))
         }
-        if(computeChild(new Cell(current.x + 1, current.y), map, explored, queue)){
+        if(computeChild(new Cell(current.x + 1, current.y), map, explored, queue, agentsMap)){
             children.push(new Cell(current.x + 1, current.y))
         }
-        if(computeChild(new Cell(current.x, current.y - 1), map, explored, queue)){
+        if(computeChild(new Cell(current.x, current.y - 1), map, explored, queue, agentsMap)){
             children.push(new Cell(current.x, current.y - 1))
         }
-        if(computeChild(new Cell(current.x, current.y + 1), map, explored, queue)){
+        if(computeChild(new Cell(current.x, current.y + 1), map, explored, queue, agentsMap)){
             children.push(new Cell(current.x, current.y + 1))
         }
 
@@ -165,6 +195,7 @@ function PathLengthBFS(sx, sy, ex, ey, map){
             child.depth = current.depth + 1
         })
     }
+    return 100000
 }
 
-export { ManhattanDistance, BFS, PathLengthBFS, readFile }
+export { ManhattanDistance, BFS, PathLengthBFS }
