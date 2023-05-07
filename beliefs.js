@@ -1,150 +1,99 @@
-import { createRequire } from "module"
-const require = createRequire(import.meta.url)
-const SortedArraySet = require("collections/sorted-array-set")
-
 class Parcel{
-    constructor( id, x, y, carriedBy, reward ){
+    constructor( id, x, y, carriedBy, reward){
         this.id = id;
         this.x = x;
         this.y = y;
         this.carriedBy = carriedBy;
         this.reward = reward;
+        this.visible = true
     }
+
     print(){
-        console.log('[PARC]\t', this.id, this.x, this.y, this.carriedBy, this.reward);
-    }
-    decreaseReward(){
-        this.reward = this.reward - 1;
-    }
-    toRemove(){
-        return this.reward === 0;
+        console.log('[PARC]\t', this.id, this.x, this.y, this.carriedBy, this.reward, this.visible);
     }
 }
 
 class Parcels{
-    constructor(){
-        this.elements = new Map();
-    }
-
-    add(parcel){
-        let add = this.elements.has(parcel.id);
-        if(!add){
-            this.elements.set(parcel.id,parcel);
-        }
-        return add;
-    }
-
-    updateRewards(){
-        let removed = [];
-        for (const parcel of this.elements){
-            parcel[1].decreaseReward();
-            if(parcel[1].toRemove()){
-                removed.push(parcel[0]);
-                this.elements.delete(parcel[0]);
-            }
-        }
-        return removed;
-    }
-
-    print(){
-        console.log('\n///////[PARCEL LIST]///////')
-        for (const parcel of this.elements){
-            parcel[1].print();
-        }
-        console.log('////////////////////////////\n')
-    }
-
-    getParcel(id) {
-        return this.elements.get(id);
-    }
-
-    removeParcel(id) {
-        this.elements.delete(id);
-    }
-}
-
-class OrderedParcelsId {
-    constructor(equals,compare) {
-        this.elements = new SortedArraySet({},equals,compare);
-    }
-
-    add(parcelId){
-        let add = this.elements.has(parcelId);
-        if(!add){
-            this.elements.add(parcelId);
-        }
-        return add;
-    }
-
-    print(parcels){
-        console.log('\n///////[ORDERED PARCEL LIST]///////')
-        this.elements.forEach(parcelId => {
-            parcels.getParcel(parcelId).print();
-        });
-        console.log('////////////////////////////\n')
-    }
-
-    removeParcelId(id) {
-        this.elements.delete(id);
-    }
-
-    getParcelId(id){
-        return this.elements.get(id);
-    }
-
-    getFirst(){
-        return this.elements.max();
-    }
-}
-
-class ParcelsManager {
     constructor(client, verbose=false) {
-        this.client = client;
-        this.verbose = verbose;
-        this.parcels = new Parcels();
-        this.orderedParcelsId = new OrderedParcelsId(
-            (aId,bId) => aId === bId,
-            (aId,bId) => {
-                let a = this.parcels.getParcel(aId) != undefined ? this.parcels.getParcel(aId).reward : null;
-                let b = this.parcels.getParcel(bId) != undefined ? this.parcels.getParcel(bId).reward : null;
-                return aId === bId || a === b ? 0
-                    : (a > b ? 1 : -1);
-            });
-        this.startStoringParcels();
+        this.client = client
+        this.verbose = verbose
+        this.parcels = new Map()
+        this.startStoringParcels()
     }
 
     startStoringParcels(){
         this.client.onParcelsSensing(data => {
-            this.parcels.elements.clear()
-            this.orderedParcelsId.elements.clear()
-            
-            for (const p of data){
-                this.parcels.add(new Parcel(p.id, p.x, p.y, p.carriedBy, p.reward))
-                if (p.carriedBy === null) {
-                    this.orderedParcelsId.add(p.id);
-                }
+            this.setAllParcelsNotVisible()
+            for(const parcel of data){
+                this.add(new Parcel(parcel.id, parcel.x, parcel.y, parcel.carriedBy, parcel.reward))
             }
+
             if (this.verbose){
-                this.parcels.print();
-                this.orderedParcelsId.print(this.parcels);
+                this.print()
             }
         });
     }
 
-    getBestParcel(){
-        return this.parcels.getParcel(this.orderedParcelsId.getFirst());
+    add(parcel){
+        if(this.parcels.has(parcel.id)){
+            this.parcels.get(parcel.id).x = parcel.x
+            this.parcels.get(parcel.id).y = parcel.y
+            this.parcels.get(parcel.id).carriedBy = parcel.carriedBy
+            this.parcels.get(parcel.id).reward = parcel.reward
+            this.parcels.get(parcel.id).visible = true
+        } else {
+            this.parcels.set(parcel.id, parcel)
+        }
+    }
+
+    setAllParcelsNotVisible(){
+        for (const parcel of this.parcels){
+            parcel[1].visible = false
+        }
+    }
+
+    clearPutdownParcels(agentId){
+        for (const parcel of this.parcels){
+            if(parcel[1].carriedBy === agentId){
+                this.parcels.delete(parcel[0])
+            }
+        }
+    }
+    
+    updateUncertainty(){
+        for (const parcel of this.parcels){
+            if(!parcel[1].visible){
+                parcel[1].reward *= 0.95
+                if(parcel[1].reward < 2){
+                    this.parcels.delete(parcel[0])
+                }
+                parcel[1].reward = Math.floor(parcel[1].reward)
+            }
+        }
+    }
+
+    getMap(){
+        return this.parcels
+    }
+    
+    print(){
+        console.log('\n///////[PARCEL LIST]///////')
+        for (const parcel of this.parcels){
+            parcel[1].print();
+        }
+        console.log('////////////////////////////\n')
     }
 }
 
 class You{
-    constructor(client, control, verbose=false){
+    constructor(client, verbose=false){
         this.client = client;
         this.verbose = verbose;
         this.client.onYou(data => {
             this.id = data.id
             this.name = data.name
-            this.x = control.lastAction == "left" ? Math.floor(data.x) : Math.ceil(data.x)
-            this.y = control.lastAction == "down" ? Math.floor(data.y) : Math.ceil(data.y)
+            this.x = Math.round(data.x)
+            this.y = Math.round(data.y)
             this.score = data.score
             if(this.verbose){
                 this.print()
@@ -172,52 +121,49 @@ class Agent{
 }
 
 class Agents{
-    constructor(){
-        this.elements = new Map()
+    constructor(client, verbose=false){
+        this.client = client
+        this.verbose = verbose
+        this.agents = new Map()
+        this.client.onAgentsSensing(data => {
+            this.setAllNonVisible()
+            for (const a of data){
+                this.add(new Agent(a.id, a.name, Math.round(a.x), Math.round(a.y), a.score))
+            }
+            if (this.verbose){
+                this.print()
+            }
+        })
+    }
+
+    getMap(){
+        return this.agents
     }
 
     print(){
         console.log('\n///////[AGENT LIST]///////')
-        for (const agent of this.elements){
+        for (const agent of this.agents){
             agent[1].print()
         }
         console.log('////////////////////////////\n')
     }
 
     setAllNonVisible(){
-        for (const agent of this.elements){
+        for (const agent of this.agents){
             agent[1].visible = false
         }
     }
 
     add(agent){
-        if(!this.elements.has(agent.id)){
-            this.elements.set(agent.id, agent)
+        if(this.agents.has(agent.id)){
+            this.agents.get(agent.id).x = agent.x
+            this.agents.get(agent.id).y = agent.y
+            this.agents.get(agent.id).score = agent.score
+            this.agents.get(agent.id).visible = true
         } else {
-            this.elements.get(agent.id).visible = true
-            this.elements.get(agent.id).x = agent.x
-            this.elements.get(agent.id).y = agent.y
-            this.elements.get(agent.id).score = agent.score
+            this.agents.set(agent.id, agent)
         }
     }
-}
-
-class AgentsManager{
-    constructor(client, verbose=false){
-        this.client = client
-        this.verbose = verbose
-        this.agents = new Agents()
-        this.client.onAgentsSensing(data => {
-            this.agents.setAllNonVisible()
-            for (const a of data){
-                this.agents.add(new Agent(a.id, a.name, Math.round(a.x), Math.round(a.y), a.score))
-            }
-            if (this.verbose){
-                this.agents.print()
-            }
-        })
-    }
-
 }
 
 class GameMap{
@@ -265,6 +211,7 @@ class GameMap{
         }, 800)
 
     }
+
     print(){
         console.log('\n-------[MAP]-------')
         let out = ''
@@ -281,16 +228,19 @@ class GameMap{
         console.log(out)
         console.log('-------------------\n')
     }
+
     getMatrix(){
         return this.matrix
     }
+
     getRows(){
         return this.n_rows
     }
+
     getCols(){
         return this.n_cols
     }
     
 }
 
-export { ParcelsManager, You, AgentsManager, GameMap }
+export { Parcels, You, Agents, GameMap }

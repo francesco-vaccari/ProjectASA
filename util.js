@@ -113,20 +113,9 @@ function BFS(sx, sy, ex, ey, map){
             child.parenty = current.y
         })
     }
+    return ['pickup']
 }
 
-function readFile ( path ) {
-    
-    return new Promise( (res, rej) => {
-
-        fs.readFile( path, 'utf8', (err, data) => {
-            if (err) rej(err)
-            else res(data)
-        })
-
-    })
-
-}
 
 function PathLengthBFS(sx, sy, ex, ey, map){
     let goal = new Cell(ex, ey)
@@ -137,13 +126,13 @@ function PathLengthBFS(sx, sy, ex, ey, map){
     while(queue.length > 0){
         
         let current = queue.shift()
-
+        
         explored.push(current)
-
+        
         if(current.x === goal.x && current.y === goal.y){
             return current.depth
         }
-
+        
         let children = []
         if(computeChild(new Cell(current.x - 1, current.y), map, explored, queue)){
             children.push(new Cell(current.x - 1, current.y))
@@ -157,7 +146,7 @@ function PathLengthBFS(sx, sy, ex, ey, map){
         if(computeChild(new Cell(current.x, current.y + 1), map, explored, queue)){
             children.push(new Cell(current.x, current.y + 1))
         }
-
+        
         children.forEach((child) => {
             queue.push(child)
             child.parentx = current.x
@@ -165,6 +154,20 @@ function PathLengthBFS(sx, sy, ex, ey, map){
             child.depth = current.depth + 1
         })
     }
+    return Infinity
+}
+
+function readFile ( path ) {
+    
+    return new Promise( (res, rej) => {
+
+        fs.readFile( path, 'utf8', (err, data) => {
+            if (err) rej(err)
+            else res(data)
+        })
+
+    })
+
 }
 
 export { ManhattanDistance, BFS, PathLengthBFS, readFile }
