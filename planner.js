@@ -4,6 +4,15 @@ import { normalCellHeuristic, deliveryCellHeuristic } from "./heuristics.js";
 import { onlineSolver, PddlProblem, Beliefset } from "@unitn-asa/pddl-client";
 import chalk from "chalk"
 
+class TargetCell{
+    constructor(x, y, score, intention){
+        this.x = x
+        this.y = y
+        this.score = score
+        this.intention = intention
+    }
+}
+
 class Planner{
     /**
      * 
@@ -97,7 +106,7 @@ class Planner{
 
     async startPlanning(map, agents, parcels, agent){
 
-        let target_x, target_y, bestscore, intention, tmpBeliefset, tmpPlan
+        let tmpBeliefset, tmpPlan, targets, found, count
 
         while(true){
 
@@ -113,7 +122,7 @@ class Planner{
                 }
             }
 
-            target_x = undefined
+            /*target_x = undefined
             target_y = undefined
             bestscore = -1
             intention = undefined
@@ -130,28 +139,19 @@ class Planner{
                         }
                     }
                 }
+            }*/
+
+            targets = []
+            for (let i = 0; i < this.n_rows; i++){
+                for (let j = 0; j < this.n_cols; j++){
+                    if(this.map[i][j] !== 0) {
+                        targets.push(new TargetCell(i, j, this.scoreMap[i][j], this.map[i][j] === 1 ? 'pickup' : 'putdown'))
+                    }
+                }
             }
-
-            // class TargetCell{
-            //     constructor(x, y, score, intention){
-            //         this.x = x
-            //         this.y = y
-            //         this.score = score
-            //         this.intention = intention
-            //     }
-            // }
-            // let targets = []
-
-            // for (let i = 0; i < this.n_rows; i++){
-            //     for (let j = 0; j < this.n_cols; j++){
-            //         if(this.map[i][j] !== 0)
-            //         targets.push(new TargetCell(i, j, this.scoreMap[i][j], this.map[i][j] === 1 ? 'pickup' : 'putdown'))
-            //     }
-            // }
-
-            // targets.sort((a, b) => {
-            //     return b.score - a.score
-            // })
+            targets.sort((a, b) => {
+                return b.score - a.score
+            })
 
 
             // given the sorted targets list cycle through until find viable plan
@@ -160,32 +160,40 @@ class Planner{
             //  - y
             //  - score
             //  - intention
-            //  - plan
 
-            tmpPlan = []
-
-            if (this.control.ready) {
-                if (target_x != agent.x || target_y != agent.y) {
-                    tmpBeliefset = new Beliefset()
-                    for (const entry of this.baseBeliefset.entries) {
-                        tmpBeliefset.declare(entry[0])
-                    }
-                    for (const agent of agents.getMap()) {
-                        if (agent[1].visible) {
-                            tmpBeliefset.declare("cell c_" + agent[1].x + "_" + agent[1].y,false)
+            found = false
+            count = 0
+            while (!found && count < targets.length) {
+                tmpPlan = []
+                if (this.control.ready) {
+                    if (targets[count].x != agent.x || targets[count].y != agent.y) {
+                        tmpBeliefset = new Beliefset()
+                        for (const entry of this.baseBeliefset.entries) {
+                            tmpBeliefset.declare(entry[0])
                         }
+                        for (const agent of agents.getMap()) {
+                            if (agent[1].visible) {
+                                tmpBeliefset.declare("cell c_" + agent[1].x + "_" + agent[1].y,false)
+                            }
+                        }
+                        tmpBeliefset.declare("in c_" + agent.x + "_" + agent.y)
+                        this.problem = new PddlProblem("BFS",
+                            tmpBeliefset.objects.join(' '),
+                            tmpBeliefset.toPddlString(),
+                            "in c_" + targets[count].x + "_" + targets[count].y)
+                        try {
+                            tmpPlan = this.translatePddl(await onlineSolver(this.domain,this.problem.toPddlString()))
+                            found = true
+                        } catch (error) {}
                     }
-                    tmpBeliefset.declare("in c_" + agent.x + "_" + agent.y)
-                    this.problem = new PddlProblem("BFS",
-                        tmpBeliefset.objects.join(' '),
-                        tmpBeliefset.toPddlString(),
-                        "in c_" + target_x + "_" + target_y)
-                    try {
-                        tmpPlan = this.translatePddl(await onlineSolver(this.domain,this.problem.toPddlString()))
-                    } catch (error) {}
+                    if (found) {
+                        tmpPlan.push(targets[count].intention)
+                        console.log("Intention",targets[count].intention,"after",tmpPlan.length);
+                        this.plan = tmpPlan
+                    }
                 }
-                tmpPlan.push(intention)
-                this.plan = tmpPlan
+                count += 1
+                await new Promise(res => setImmediate(res))
             }
 
             await new Promise(res => setImmediate(res))
