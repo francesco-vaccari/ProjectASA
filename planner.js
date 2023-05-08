@@ -74,8 +74,6 @@ class Planner{
             if(this.verbose){
                 setInterval(() => {
                     this.print(agent)
-                    // console.log(this.intention)
-                    // console.log(this.plan)
                 }, 100)
             }
         }, 900)
@@ -187,12 +185,11 @@ class Planner{
                         } catch (error) {}
                     }
                     if (found) {
-                        tmpPlan.push(targets[count].intention)
-                        console.log("Intention",targets[count].intention,"after",tmpPlan.length);
+                        tmpPlan = tmpPlan.concat([targets[count].intention])
                         this.plan = tmpPlan
                     }
+                    count += 1
                 }
-                count += 1
                 await new Promise(res => setImmediate(res))
             }
 
