@@ -18,7 +18,7 @@ const agents = new Agents(client, false)
 const planner = new Planner(map, agents, parcels, agent, control, false)
 
 function agentControlLoop(){
-    let newParcel, parcel, iterator, a;
+    let newParcel, parcel, iterator, putdown;
     setTimeout(async () => {
         while(true){
             plan = planner.getPlan()
@@ -29,6 +29,7 @@ function agentControlLoop(){
                 // console.log('\tACTION ' + control.lastAction)
 
                 newParcel = false
+                putdown = false
                 if (control.lastAction == 'up' || control.lastAction == 'down' || control.lastAction == 'left' || control.lastAction == 'right') {
                     iterator = parcels.parcels.values()
                     while (!newParcel && (parcel = iterator.next().value) != null) {
@@ -37,6 +38,15 @@ function agentControlLoop(){
                             control.lastAction = "pickup"
                         }
                         await new Promise(res => setImmediate(res))
+                    }
+                    if (map.getMatrix()[agent.x][agent.y] == 2) {
+                        while (!putdown && (parcel = iterator.next().value) != null) {
+                            if (parcel.carriedBy == agent.id) {
+                                putdown = true
+                                control.lastAction = "putdown"
+                            }
+                            await new Promise(res => setImmediate(res))
+                        }
                     }
                 }
 
@@ -70,7 +80,7 @@ function agentControlLoop(){
                         break;
                 }
 
-                if (!newParcel) {
+                if (!(newParcel || putdown)) {
                     plan.shift()
                 }
             }
