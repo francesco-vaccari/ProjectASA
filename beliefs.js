@@ -141,6 +141,13 @@ class Agents{
                 this.print()
             }
         })
+        setInterval(() => {
+            for (const agent of this.agents){
+                if(!agent[1].visible){
+                    this.agents.delete(agent[0])
+                }
+            }
+        }, 2000)
     }
 
     getList(){

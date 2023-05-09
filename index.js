@@ -4,7 +4,7 @@ const client = new DeliverooApi( config.host, config.token )
 
 import { You, GameMap, Parcels, Agents } from "./beliefs.js";
 const agent = new You(client, false)
-const map = new GameMap(client, false)
+const map = new GameMap(client, true)
 const parcels = new Parcels(client, false)
 const agents = new Agents(client, false)
 
