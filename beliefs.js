@@ -19,6 +19,13 @@ class Parcels{
         this.verbose = verbose
         this.parcels = new Map()
         this.startStoringParcels()
+        setInterval(() => {
+            for (const parcel of this.parcels){
+                if(!parcel[1].visible){
+                    this.parcels.delete(parcel[0])
+                }
+            }
+        }, 2000)
     }
 
     startStoringParcels(){
@@ -64,10 +71,10 @@ class Parcels{
         for (const parcel of this.parcels){
             if(!parcel[1].visible){
                 parcel[1].reward *= 0.95
+                parcel[1].reward = Math.floor(parcel[1].reward)
                 if(parcel[1].reward < 2){
                     this.parcels.delete(parcel[0])
                 }
-                parcel[1].reward = Math.floor(parcel[1].reward)
             }
         }
     }

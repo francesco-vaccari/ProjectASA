@@ -47,7 +47,7 @@ class Planner{
                 setInterval(() => {
                     this.print(agent)
                     // console.log(this.intention)
-                    console.log(this.plan)
+                    // console.log(this.plan)
                 }, 100)
             }
         }, 900)
@@ -68,27 +68,27 @@ class Planner{
                 }
             }
 
-            let target_x = undefined
-            let target_y = undefined
-            let bestscore = -1
-            let intention = undefined
-            for (let i = 0; i < this.n_rows; i++){
-                for (let j = 0; j < this.n_cols; j++){
-                    if(this.scoreMap[i][j] > bestscore && this.map[i][j] !== 0){
-                        bestscore = this.scoreMap[i][j]
-                        target_x = i
-                        target_y = j
-                        if(this.map[i][j] === 1){
-                            intention = 'pickup'
-                        } else if(this.map[i][j] === 2){
-                            intention = 'putdown'
-                        }
-                    }
-                }
-            }
+            // let target_x = undefined
+            // let target_y = undefined
+            // let bestscore = -1
+            // let intention = undefined
+            // for (let i = 0; i < this.n_rows; i++){
+            //     for (let j = 0; j < this.n_cols; j++){
+            //         if(this.scoreMap[i][j] > bestscore && this.map[i][j] !== 0){
+            //             bestscore = this.scoreMap[i][j]
+            //             target_x = i
+            //             target_y = j
+            //             if(this.map[i][j] === 1){
+            //                 intention = 'pickup'
+            //             } else if(this.map[i][j] === 2){
+            //                 intention = 'putdown'
+            //             }
+            //         }
+            //     }
+            // }
 
 
-            this.plan = BFS(agent.x, agent.y, target_x, target_y, map, agents).concat(intention)
+            // this.plan = BFS(agent.x, agent.y, target_x, target_y, map, agents).concat(intention)
 
             class TargetCell{
                 constructor(x, y, score, intention){

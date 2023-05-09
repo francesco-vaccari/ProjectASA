@@ -9,7 +9,7 @@ const parcels = new Parcels(client, false)
 const agents = new Agents(client, false)
 
 import { Planner } from "./planner.js";
-const planner = new Planner(map, agents, parcels, agent, false)
+const planner = new Planner(map, agents, parcels, agent, true)
 
 
 
