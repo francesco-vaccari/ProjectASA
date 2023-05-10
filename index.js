@@ -39,6 +39,7 @@ function agentControlLoop(){
                         }
                         await new Promise(res => setImmediate(res))
                     }
+                    iterator = parcels.parcels.values()
                     if (map.getMatrix()[agent.x][agent.y] == 2) {
                         while (!putdown && (parcel = iterator.next().value) != null) {
                             if (parcel.carriedBy == agent.id) {
