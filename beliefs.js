@@ -182,48 +182,32 @@ class Agents{
 
 class GameMap{
     constructor(client, verbose=false){
-        this.client = client;
-        this.verbose = verbose;
-        let x_list = []
-        let y_list = []
-        let delivery_list = []
-        this.client.onTile((x, y, delivery) => {
-            x_list.push(x)
-            y_list.push(y)
-            delivery_list.push(delivery)
-        });
-        setTimeout(() => {
-            this.n_rows = Math.max.apply(null, x_list)+1
-            this.n_cols = Math.max.apply(null, y_list)+1
-            if (this.verbose){
-                console.log('Map size: ', this.n_rows, this.n_cols)
-            }
-            this.matrix = []
+        this.client = client
+        this.verbose = verbose
+        this.n_rows = undefined
+        this.n_cols = undefined
+        this.matrix = []
+        this.isReady = false
+        
+        this.client.onMap((width, height, list) => {
+            this.n_rows = width
+            this.n_cols = height
             for (let i = 0; i < this.n_rows; i++){
                 this.matrix.push([])
                 for (let j = 0; j < this.n_cols; j++){
                     this.matrix[i].push(0)
                 }
             }
-            let index = 0
-            for (let i = 0; i < this.n_rows; i++){
-                for (let j = 0; j < this.n_cols; j++){
-                    if (x_list[index] === i && y_list[index] === j){
-                        if(delivery_list[index]){
-                            this.matrix[i][j] = 2
-                        } else {
-                            this.matrix[i][j] = 1
-                        }
-                        index = index + 1
-                    }
-                }
+            for (const cell of list){
+                this.matrix[cell.x][cell.y] = cell.delivery ? 2 : 1
             }
             if (this.verbose){
+                console.log('Map size: ', this.n_rows, this.n_cols)
                 console.log('Map initialized')
-                this.print();
+                this.print()
             }
-        }, 800)
-
+            this.isReady = true
+        })
     }
 
     print(){

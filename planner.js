@@ -4,53 +4,51 @@ import chalk from "chalk"
 
 class Planner{
     constructor(map, agents, parcels, agent, verbose=false){
-        setTimeout(() => {
-            this.n_rows = map.getRows()
-            this.n_cols = map.getCols()
-            this.map = []
-            this.scoreMap = []
-            this.verbose = verbose
+        this.n_rows = map.getRows()
+        this.n_cols = map.getCols()
+        this.map = []
+        this.scoreMap = []
+        this.verbose = verbose
 
-            for (let i = 0; i < this.n_rows; i++){
-                this.map.push([])
-                for (let j = 0; j < this.n_cols; j++){
-                    this.map[i].push(0)
-                }
+        for (let i = 0; i < this.n_rows; i++){
+            this.map.push([])
+            for (let j = 0; j < this.n_cols; j++){
+                this.map[i].push(0)
             }
+        }
 
-            for (let i = 0; i < this.n_rows; i++){
-                this.scoreMap.push([])
-                for (let j = 0; j < this.n_cols; j++){
-                    this.scoreMap[i].push(0)
-                }
+        for (let i = 0; i < this.n_rows; i++){
+            this.scoreMap.push([])
+            for (let j = 0; j < this.n_cols; j++){
+                this.scoreMap[i].push(0)
             }
+        }
 
-            for (let i = 0; i < this.n_rows; i++){
-                for (let j = 0; j < this.n_cols; j++){
-                    this.map[i][j] = map.getMatrix()[i][j]
-                }
+        for (let i = 0; i < this.n_rows; i++){
+            for (let j = 0; j < this.n_cols; j++){
+                this.map[i][j] = map.getMatrix()[i][j]
             }
+        }
 
-            for (let i = 0; i < this.n_rows; i++){
-                for (let j = 0; j < this.n_cols; j++){
-                    this.scoreMap[i][j] = 0
-                }
+        for (let i = 0; i < this.n_rows; i++){
+            for (let j = 0; j < this.n_cols; j++){
+                this.scoreMap[i][j] = 0
             }
+        }
 
-            if(this.verbose){
-                console.log('ScoreMap initialized')
-            }
+        if(this.verbose){
+            console.log('ScoreMap initialized')
+        }
 
-            this.startPlanning(map, agents, parcels, agent)
-            
-            if(this.verbose){
-                setInterval(() => {
-                    this.print(agent)
-                    // console.log(this.intention)
-                    // console.log(this.plan)
-                }, 100)
-            }
-        }, 900)
+        this.startPlanning(map, agents, parcels, agent)
+        
+        if(this.verbose){
+            setInterval(() => {
+                this.print(agent)
+                // console.log(this.intention)
+                // console.log(this.plan)
+            }, 100)
+        }
     }
 
     async startPlanning(map, agents, parcels, agent){

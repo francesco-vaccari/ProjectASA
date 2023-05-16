@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@unitn-asa/deliveroo-js-client": "^0.0.24",
+    "@unitn-asa/deliveroo-js-client": "^0.0.34",
     "@unitn-asa/pddl-client": "^0.0.29",
     "chalk": "^5.2.0",
     "collections": "^5.1.13",
