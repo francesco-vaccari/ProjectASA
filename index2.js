@@ -25,11 +25,11 @@ function initializeCommunication(){
         if(otherAgentId === undefined){
             if(msg === INIT){
                 if(!onceInit){
-                    onceInit = true
                     client.say(fromId, SECRET)
                 }
             }
             if(msg === OKAY){
+                onceInit = true
                 otherAgentId = fromId
                 console.log('['+agent.name+']\tCommunication initialized', otherAgentId)
             }
