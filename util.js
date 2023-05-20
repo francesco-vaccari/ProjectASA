@@ -16,7 +16,7 @@ class Cell{
 }
 
 function computeChild(child, map, explored, queue, agentsMap){
-    if(child.x >= 0 && child.y >= 0 && child.x < map.n_rows && child.y < map.n_cols && map.matrix[child.x][child.y] !== 0 && agentsMap[child.x][child.y] !== 1){
+    if(child.x >= 0 && child.y >= 0 && child.x < map.getNRows() && child.y < map.getNCols() && map.matrix[child.x][child.y].type !== 0 && agentsMap[child.x][child.y] !== 1){
         let already_explored = false
         explored.forEach((cell) => {
             if(cell.x === child.x && cell.y === child.y){
@@ -78,14 +78,14 @@ function PlanBFS(start, goal, explored){
  */
 function BFS(sx, sy, ex, ey, map, agents){
     let agentsMap = []
-    for (let i = 0; i < map.n_rows; i++){
+    for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])
-        for (let j = 0; j < map.n_cols; j++){
+        for (let j = 0; j < map.getNCols(); j++){
             agentsMap[i].push(0)
         }
     }
-    if(agents.getList().size > 0){
-        for (const agent of agents.getList()){
+    if(agents.getMap().size > 0){
+        for (const agent of agents.getMap()){
             agentsMap[agent[1].x][agent[1].y] = 1
         }
     }
@@ -129,14 +129,14 @@ function BFS(sx, sy, ex, ey, map, agents){
 
 function PathLengthBFS(sx, sy, ex, ey, map, agents){
     let agentsMap = []
-    for (let i = 0; i < map.n_rows; i++){
+    for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])
-        for (let j = 0; j < map.n_cols; j++){
+        for (let j = 0; j < map.getNCols(); j++){
             agentsMap[i].push(0)
         }
     }
-    if(agents.getList().size > 0){
-        for (const agent of agents.getList()){
+    if(agents.getMap().size > 0){
+        for (const agent of agents.getMap()){
             agentsMap[agent[1].x][agent[1].y] = 1
         }
     }
