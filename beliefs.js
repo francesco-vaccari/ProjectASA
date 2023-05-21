@@ -69,7 +69,7 @@ class Parcel{
     }
 }
 
-class Parcels{
+class ThisAgentParcels{
     constructor(client, conf, agent, comm, verbose=false){
         this.client = client
         this.conf = conf
@@ -283,7 +283,7 @@ class Agent{
     }
 }
 
-class Agents{
+class ThisAgentAgents{
     constructor(client, comm, verbose=false){
         this.client = client
         this.comm = comm
@@ -348,10 +348,15 @@ class OtherAgent{
         this.x = undefined
         this.y = undefined
         this.score = undefined
+    }
+    set(json){
+        this.id = json.id
+        this.name = json.name
+        this.x = json.x
+        this.y = json.y
+        this.score = json.score
         if(this.verbose){
-            setInterval(() => {
-                this.print()
-            }, 100)
+            this.print()
         }
     }
     print(){
@@ -359,4 +364,50 @@ class OtherAgent{
     }
 }
 
-export { Conf, You, Parcels, GameMap, Agents, OtherAgent }
+class OtherAgentAgents{
+    constructor(verbose=false){
+        this.verbose = verbose
+        this.agents = new Map()
+    }
+    clearAndAddAll(agents){
+        this.agents.clear()
+        for(const agent of agents){
+            this.agents.set(agent[0], agent[1])
+        }
+        if(this.verbose){
+            this.print()
+        }
+    }
+    print(){
+        console.log('\n///////[OTHER AGENT LIST]///////')
+        for (const agent of this.agents){
+            console.log('[OTHERAGENT]\t', agent[0], agent[1].name, agent[1].x, agent[1].y, agent[1].score)
+        }
+        console.log('////////////////////////////\n')
+    }
+}
+
+class OtherAgentParcels{
+    constructor(verbose=false){
+        this.verbose = verbose
+        this.parcels = new Map()
+    }
+    clearAndAddAll(parcels){
+        this.parcels.clear()
+        for(const parcel of parcels){
+            this.parcels.set(parcel[0], parcel[1])
+        }
+        if(this.verbose){
+            this.print()
+        }
+    }
+    print(){
+        console.log('\n///////[OTHER AGENT PARCEL LIST]///////')
+        for (const parcel of this.parcels){
+            console.log('[OTHERPARCEL]\t', parcel[0], parcel[1].x, parcel[1].y, parcel[1].carriedBy, parcel[1].reward)
+        }
+        console.log('////////////////////////////\n')
+    }
+}
+
+export { Conf, You, ThisAgentParcels, OtherAgentParcels, GameMap, OtherAgent, ThisAgentAgents, OtherAgentAgents }

@@ -1,19 +1,21 @@
 import { DeliverooApi, timer } from "@unitn-asa/deliveroo-js-client"
 import { default as config } from "./config1.js"
-import { Conf, You, Parcels, GameMap, Agents, OtherAgent } from "./beliefs.js"
+import { Conf, You, ThisAgentParcels, OtherAgentParcels, GameMap, OtherAgent, ThisAgentAgents, OtherAgentAgents } from "./beliefs.js"
 import { Planner } from "./planner.js"
-import { Communication, CommHandler } from "./communication.js"
+import { Communication, CommunicationHandler } from "./communication.js"
 
 const client = new DeliverooApi( config.host, config.token )
 const conf = new Conf(client, false)
 const comm = new Communication(client, 'one', false)
 const agent = new You(client, comm, false)
-const parcels = new Parcels(client, conf, agent, comm, false)
+const thisAgentParcels = new ThisAgentParcels(client, conf, agent, comm, false)
+const otherAgentParcels = new OtherAgentParcels(false)
 const map = new GameMap(client, comm, conf, agent, false)
-const agents = new Agents(client, comm, false)
-const planner = new Planner(client, map, agent, parcels, agents, comm, false)
+const thisAgentAgents = new ThisAgentAgents(client, comm, false)
+const otherAgentAgents = new OtherAgentAgents(false)
+const planner = new Planner(client, map, agent, thisAgentParcels, thisAgentAgents, comm, false)
 const otherAgent = new OtherAgent(false)
-const commHandler = new CommHandler(comm, otherAgent, map, parcels, agents, false)
+const commHandler = new CommunicationHandler(comm, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, false)
 
 var plan = []
 var action = undefined
