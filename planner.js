@@ -10,7 +10,7 @@ class Target{
 }
 
 class Planner{
-    constructor(client, map, agent, parcels, agents, verbose=false){
+    constructor(client, map, agent, parcels, agents, comm, verbose=false){
         this.client = client
         this.verbose = verbose
         this.map = map
@@ -85,7 +85,7 @@ class Planner{
             }
             
             if(this.verbose){
-                console.log('TARGET', this.target.x, this.target.y, this.target.intention)
+                console.log('['+this.agent.name+']\tTARGET', this.target.x, this.target.y, this.target.intention)
                 // console.log('PLAN', this.plan)
             }
         }, 100)
@@ -179,7 +179,12 @@ class Planner{
         return Math.pow(scoreParcelsCarriedByAgent, 0.8) / Math.pow(distanceToAgent, 1)
     }
     agentKnowsParcels(){
-        return this.parcels.getMap().size > 0
+        for(const parcel of this.parcels.getMap()){
+            if(parcel[1].carriedBy == null){
+                return true
+            }
+        }
+        return false
     }
     agentCarriesParcels(){
         let carry = false

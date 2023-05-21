@@ -22,8 +22,9 @@ class Conf{
 }
 
 class You{
-    constructor(client, verbose=false){
+    constructor(client, comm, verbose=false){
         this.client = client
+        this.comm = comm
         this.verbose = verbose
         this.id = undefined
         this.client.onYou(data => {
@@ -32,9 +33,20 @@ class You{
             this.x = Math.round(data.x)
             this.y = Math.round(data.y)
             this.score = data.score
+            this.comm.say(this.createJSON())
             if(this.verbose){
                 this.print()
             }
+        })
+    }
+    createJSON(){
+        return JSON.stringify({
+            belief: 'YOU',
+            id: this.id,
+            name: this.name,
+            x: this.x,
+            y: this.y,
+            score: this.score
         })
     }
     print(){
@@ -44,11 +56,11 @@ class You{
 
 class Parcel{
     constructor( id, x, y, carriedBy, reward){
-        this.id = id;
-        this.x = x;
-        this.y = y;
-        this.carriedBy = carriedBy;
-        this.reward = reward;
+        this.id = id
+        this.x = x
+        this.y = y
+        this.carriedBy = carriedBy
+        this.reward = reward
         this.visible = true
     }
 
@@ -58,10 +70,11 @@ class Parcel{
 }
 
 class Parcels{
-    constructor(client, conf, agent, verbose=false){
+    constructor(client, conf, agent, comm, verbose=false){
         this.client = client
         this.conf = conf
         this.agent = agent
+        this.comm = comm
         this.verbose = verbose
         this.parcels = new Map()
         this.startDecay()
@@ -71,10 +84,16 @@ class Parcels{
                 this.add(new Parcel(parcel.id, Math.round(parcel.x), Math.round(parcel.y), parcel.carriedBy, parcel.reward))
             }
             this.deleteInconsistentParcels()
+            this.comm.say(this.createJSON())
+            this.createJSON()
             if(this.verbose){
                 this.print()
             }
         })
+    }
+    createJSON(){
+        return JSON.stringify({belief: 'PARCELS', map: Array.from(this.parcels)})
+        
     }
     startDecay(){
         let once = false
@@ -147,8 +166,9 @@ class Cell{
 }
 
 class GameMap{
-    constructor(client, conf, agent, verbose=false){
+    constructor(client, comm, conf, agent, verbose=false){
         this.client = client
+        this.comm = comm
         this.conf = conf
         this.agent = agent
         this.verbose = verbose
@@ -177,6 +197,7 @@ class GameMap{
             }
             if(this.verbose){
                 this.print()
+                this.printLastSeen()
             }
             this.startTrackingSeenCells()
         })
@@ -185,20 +206,24 @@ class GameMap{
         setInterval(() => {
             if(this.agent.x !== undefined && this.agent.y !== undefined){
                 if(this.conf.parcelsViewingDistance !== undefined){
-                    let x = Math.round(this.agent.x)
-                    let y = Math.round(this.agent.y)
                     for (let i = 0; i < this.n_rows; i++){
                         for (let j = 0; j < this.n_cols; j++){
-                            if(ManhattanDistance(x, y, i, j) < this.conf.parcelsViewingDistance){
-                                this.matrix[i][j].lastSeen = 0
-                            } else {
-                                this.matrix[i][j].lastSeen += 1
+                            if(this.matrix[i][j].type === 3){
+                                if(ManhattanDistance(this.agent.x, this.agent.y, i, j) < this.conf.parcelsViewingDistance){
+                                    this.comm.say(this.createJSON(i, j))
+                                    this.matrix[i][j].lastSeen = 0
+                                } else {
+                                    this.matrix[i][j].lastSeen += 1
+                                }
                             }
                         }
                     }
                 }
             }
-        }, 100)
+        }, 50)
+    }
+    createJSON(x, y){
+        return JSON.stringify({belief: 'MAP', x: x, y: y})
     }
     print(){
         console.log('\n-------[MAP]-------')
@@ -209,13 +234,30 @@ class GameMap{
                     out += '  '
                 } else {
                     out += this.matrix[row][col].type + ' '
-                    // out += this.matrix[row][col].lastSeen + ' '
                 }
             }
             out += '\n'
         }
         console.log(out)
         console.log('-------------------\n')
+    }
+    printLastSeen(){
+        setInterval(() => {
+            console.log('\n-------[LAST SEEN]-------')
+            let out = ''
+            for (let col = this.n_cols-1; col >= 0; col--){
+                for (let row = 0; row < this.n_rows; row++){
+                    if(this.matrix[row][col].type === 0){
+                        out += '  '
+                    } else {
+                        out += this.matrix[row][col].lastSeen + ' '
+                    }
+                }
+                out += '\n'
+            }
+            console.log(out)
+            console.log('-------------------\n')
+        }, 100)
     }
     getMatrix(){
         return this.matrix
@@ -243,7 +285,7 @@ class Agent{
 }
 
 class Agents{
-    constructor(client, verbose=false){
+    constructor(client, comm, verbose=false){
         this.client = client
         this.verbose = verbose
         this.agents = new Map()
@@ -294,4 +336,23 @@ class Agents{
     }
 }
 
-export { Conf, You, Parcels, GameMap, Agents }
+class OtherAgent{
+    constructor(verbose=false){
+        this.verbose = verbose
+        this.id = undefined
+        this.name = undefined
+        this.x = undefined
+        this.y = undefined
+        this.score = undefined
+        if(this.verbose){
+            setInterval(() => {
+                this.print()
+            }, 100)
+        }
+    }
+    print(){
+        console.log('[OTHERAGENT]\t', this.id, this.name, this.x, this.y, this.score)
+    }
+}
+
+export { Conf, You, Parcels, GameMap, Agents, OtherAgent }
