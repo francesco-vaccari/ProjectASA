@@ -286,6 +286,7 @@ class Agent{
 class Agents{
     constructor(client, comm, verbose=false){
         this.client = client
+        this.comm = comm
         this.verbose = verbose
         this.agents = new Map()
         this.forgetAgentsAfterNSeconds(3)
