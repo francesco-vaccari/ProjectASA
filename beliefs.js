@@ -85,7 +85,6 @@ class Parcels{
             }
             this.deleteInconsistentParcels()
             this.comm.say(this.createJSON())
-            this.createJSON()
             if(this.verbose){
                 this.print()
             }
@@ -295,10 +294,14 @@ class Agents{
             for (const agent of data){
                 this.add(new Agent(agent.id, agent.name, Math.round(agent.x), Math.round(agent.y), agent.score))
             }
+            this.comm.say(this.createJSON())
             if (this.verbose){
                 this.print()
             }
         })
+    }
+    createJSON(){
+        return JSON.stringify({belief: 'AGENTS', map: Array.from(this.agents)})
     }
     setAllAgentsNotVisible(){
         for (const agent of this.agents){
