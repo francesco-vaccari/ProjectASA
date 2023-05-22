@@ -70,13 +70,14 @@ class Parcel{
 }
 
 class ThisAgentParcels{
-    constructor(client, conf, agent, comm, verbose=false){
+    constructor(client, parcels, conf, agent, comm, verbose=false){
         this.client = client
+        this.parcels = parcels
         this.conf = conf
         this.agent = agent
         this.comm = comm
         this.verbose = verbose
-        this.parcels = new Map()
+        this.map = new Map()
         this.startDecay()
         this.client.onParcelsSensing(data => {
             this.setAllParcelsNotVisible()
@@ -88,10 +89,11 @@ class ThisAgentParcels{
             if(this.verbose){
                 this.print()
             }
+            this.parcels.setMapOfThisAgent(this.map)
         })
     }
     createJSON(){
-        return JSON.stringify({belief: 'PARCELS', map: Array.from(this.parcels)})
+        return JSON.stringify({belief: 'PARCELS', map: Array.from(this.map)})
         
     }
     startDecay(){
@@ -102,16 +104,16 @@ class ThisAgentParcels{
                     once = true
                     if(this.conf.decayingTime != 0){
                         setInterval(() => {
-                            for(const parcel of this.parcels){
+                            for(const parcel of this.map){
                                 parcel[1].reward -= 1
                             }
                         }, this.conf.decayingTime)
                     }
                 }
             }
-            for(const parcel of this.parcels){
+            for(const parcel of this.map){
                 if(parcel[1].reward < 1){
-                    this.parcels.delete(parcel[0])
+                    this.map.delete(parcel[0])
                 }
             }
         })
@@ -119,39 +121,39 @@ class ThisAgentParcels{
     deleteInconsistentParcels(){
         if(this.conf.parcelsViewingDistance != undefined){
             if(this.agent.x != undefined && this.agent.y != undefined){
-                for(const parcel of this.parcels){
+                for(const parcel of this.map){
                     if(!parcel[1].visible && ManhattanDistance(this.agent.x, this.agent.y, parcel[1].x, parcel[1].y) < this.conf.parcelsViewingDistance){
-                        this.parcels.delete(parcel[0])
+                        this.map.delete(parcel[0])
                     }
                 }
             }
         }
     }
     setAllParcelsNotVisible(){
-        for (const parcel of this.parcels){
+        for (const parcel of this.map){
             parcel[1].visible = false
         }
     }
     add(parcel){
-        if(this.parcels.has(parcel.id)){
-            this.parcels.get(parcel.id).x = parcel.x
-            this.parcels.get(parcel.id).y = parcel.y
-            this.parcels.get(parcel.id).carriedBy = parcel.carriedBy
-            this.parcels.get(parcel.id).reward = parcel.reward
-            this.parcels.get(parcel.id).visible = true
+        if(this.map.has(parcel.id)){
+            this.map.get(parcel.id).x = parcel.x
+            this.map.get(parcel.id).y = parcel.y
+            this.map.get(parcel.id).carriedBy = parcel.carriedBy
+            this.map.get(parcel.id).reward = parcel.reward
+            this.map.get(parcel.id).visible = true
         } else {
-            this.parcels.set(parcel.id, parcel)
+            this.map.set(parcel.id, parcel)
         }
     }
     print(){
         console.log('\n///////[PARCEL LIST]///////')
-        for (const parcel of this.parcels){
+        for (const parcel of this.map){
             parcel[1].print();
         }
         console.log('////////////////////////////\n')
     }
     getMap(){
-        return this.parcels
+        return this.map
     }
 }
 
@@ -284,11 +286,12 @@ class Agent{
 }
 
 class ThisAgentAgents{
-    constructor(client, comm, verbose=false){
+    constructor(client, agents, comm, verbose=false){
         this.client = client
+        this.agents = agents
         this.comm = comm
         this.verbose = verbose
-        this.agents = new Map()
+        this.map = new Map()
         this.forgetAgentsAfterNSeconds(3)
         this.client.onAgentsSensing(data => {
             this.setAllAgentsNotVisible()
@@ -299,44 +302,45 @@ class ThisAgentAgents{
             if (this.verbose){
                 this.print()
             }
+            this.agents.setMapOfThisAgent(this.map)
         })
     }
     createJSON(){
-        return JSON.stringify({belief: 'AGENTS', map: Array.from(this.agents)})
+        return JSON.stringify({belief: 'AGENTS', map: Array.from(this.map)})
     }
     setAllAgentsNotVisible(){
-        for (const agent of this.agents){
+        for (const agent of this.map){
             agent[1].visible = false
         }
     }
     forgetAgentsAfterNSeconds(n){
         setInterval(() => {
-            for (const agent of this.agents){
+            for (const agent of this.map){
                 if(!agent[1].visible){
-                    this.agents.delete(agent[0])
+                    this.map.delete(agent[0])
                 }
             }
         }, n*1000)
     }
     add(agent){
-        if(this.agents.has(agent.id)){
-            this.agents.get(agent.id).x = agent.x
-            this.agents.get(agent.id).y = agent.y
-            this.agents.get(agent.id).score = agent.score
-            this.agents.get(agent.id).visible = true
+        if(this.map.has(agent.id)){
+            this.map.get(agent.id).x = agent.x
+            this.map.get(agent.id).y = agent.y
+            this.map.get(agent.id).score = agent.score
+            this.map.get(agent.id).visible = true
         } else {
-            this.agents.set(agent.id, agent)
+            this.map.set(agent.id, agent)
         }
     }
     print(){
         console.log('\n///////[AGENT LIST]///////')
-        for (const agent of this.agents){
+        for (const agent of this.map){
             agent[1].print()
         }
         console.log('////////////////////////////\n')
     }
     getMap(){
-        return this.agents
+        return this.map
     }
 }
 
@@ -365,49 +369,147 @@ class OtherAgent{
 }
 
 class OtherAgentAgents{
-    constructor(verbose=false){
+    constructor(agents, verbose=false){
         this.verbose = verbose
-        this.agents = new Map()
+        this.agents = agents
+        this.map = new Map()
     }
     clearAndAddAll(agents){
-        this.agents.clear()
+        this.map.clear()
         for(const agent of agents){
-            this.agents.set(agent[0], agent[1])
+            this.map.set(agent[0], agent[1])
         }
         if(this.verbose){
             this.print()
         }
+        this.agents.setMapOfOtherAgent(this.map)
     }
     print(){
         console.log('\n///////[OTHER AGENT LIST]///////')
-        for (const agent of this.agents){
-            console.log('[OTHERAGENT]\t', agent[0], agent[1].name, agent[1].x, agent[1].y, agent[1].score)
+        for (const agent of this.map){
+            console.log('[OTHERAGENT]\t', agent[0], agent[1].name, agent[1].x, agent[1].y, agent[1].score, agent[1].visible)
         }
         console.log('////////////////////////////\n')
     }
 }
 
 class OtherAgentParcels{
-    constructor(verbose=false){
+    constructor(parcels, verbose=false){
         this.verbose = verbose
-        this.parcels = new Map()
+        this.parcels = parcels
+        this.map = new Map()
     }
     clearAndAddAll(parcels){
-        this.parcels.clear()
+        this.map.clear()
         for(const parcel of parcels){
-            this.parcels.set(parcel[0], parcel[1])
+            this.map.set(parcel[0], parcel[1])
         }
         if(this.verbose){
             this.print()
         }
+        this.parcels.setMapOfOtherAgent(this.map)
     }
     print(){
         console.log('\n///////[OTHER AGENT PARCEL LIST]///////')
-        for (const parcel of this.parcels){
-            console.log('[OTHERPARCEL]\t', parcel[0], parcel[1].x, parcel[1].y, parcel[1].carriedBy, parcel[1].reward)
+        for (const parcel of this.map){
+            console.log('[OTHERPARCEL]\t', parcel[0], parcel[1].x, parcel[1].y, parcel[1].carriedBy, parcel[1].reward, parcel[1].visible)
         }
         console.log('////////////////////////////\n')
     }
 }
 
-export { Conf, You, ThisAgentParcels, OtherAgentParcels, GameMap, OtherAgent, ThisAgentAgents, OtherAgentAgents }
+class Parcels{
+    constructor(conf, thisAgent, otherAgent, verbose=false){
+        this.verbose = verbose
+        this.thisAgent = thisAgent
+        this.otherAgent = otherAgent
+        this.conf = conf
+        this.parcels = new Map()
+        this.mapOfThisAgent = new Map()
+        this.mapOfOtherAgent = new Map()
+    }
+    setMapOfThisAgent(map){
+        this.mapOfThisAgent = map
+        this.joinMaps()
+    }
+    setMapOfOtherAgent(map){
+        this.mapOfOtherAgent = map
+        this.joinMaps()
+    }
+    joinMaps(){
+        this.parcels.clear()
+        for(const parcel of this.mapOfThisAgent){
+            this.parcels.set(parcel[0], parcel[1])
+        }
+        for(const parcel of this.mapOfOtherAgent){
+            if(this.parcels.has(parcel[0])){
+                if(parcel[1].visible && !this.parcels.get(parcel[0]).visible){
+                    this.parcels.set(parcel[0], parcel[1])
+                } else {
+                    if(!this.parcels.has(parcel[0])){
+                        this.parcels.set(parcel[0], parcel[1])
+                    }
+                }
+            }
+        }
+    }
+    print(){
+        console.log('\n///////[PARCEL LIST UNIFIED]///////')
+        for (const parcel of this.parcels){
+            console.log('[PARCEL]\t', parcel[0], parcel[1].x, parcel[1].y, parcel[1].carriedBy, parcel[1].reward)
+        }
+        console.log('////////////////////////////\n')
+    }
+    getMap(){
+        return this.parcels
+    }
+}
+
+class Agents{
+    constructor(conf, agent, otherAgent, verbose=false){
+        this.verbose = verbose
+        this.agent = agent
+        this.otherAgent = otherAgent
+        this.conf = conf
+        this.agents = new Map()
+        this.mapOfThisAgent = new Map()
+        this.mapOfOtherAgent = new Map()
+    }
+    setMapOfThisAgent(map){
+        this.mapOfThisAgent = map
+        this.joinMaps()
+    }
+    setMapOfOtherAgent(map){
+        this.mapOfOtherAgent = map
+        this.joinMaps()
+    }
+    joinMaps(){
+        this.agents.clear()
+        for(const agent of this.mapOfThisAgent){
+            this.agents.set(agent[0], agent[1])
+        }
+        for(const agent of this.mapOfOtherAgent){
+            if(this.agents.has(agent[0])){
+                if(agent[1].visible && !this.agents.get(agent[0]).visible){
+                    this.agents.set(agent[0], agent[1])
+                } else {
+                    if(!this.agents.has(agent[0])){
+                        this.agents.set(agent[0], agent[1])
+                    }
+                }
+            }
+        }
+    }
+    print(){
+        console.log('\n///////[AGENT LIST UNIFIED]///////')
+        for (const agent of this.agents){
+            console.log('[AGENT]\t', agent[0], agent[1].name, agent[1].x, agent[1].y, agent[1].score)
+        }
+        console.log('////////////////////////////\n')
+    }
+    getMap(){
+        return this.agents
+    }
+}
+
+export { Conf, You, ThisAgentParcels, OtherAgentParcels, GameMap, OtherAgent, ThisAgentAgents, OtherAgentAgents, Parcels, Agents }

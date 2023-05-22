@@ -10,20 +10,28 @@ class Target{
 }
 
 class Planner{
-    constructor(client, map, agent, parcels, agents, comm, verbose=false){
+    constructor(client, map, agent, otherAgent, parcels, agents, comm, verbose=false){
         this.client = client
         this.verbose = verbose
         this.map = map
         this.agent = agent
+        this.otherAgent = otherAgent
         this.parcels = parcels
         this.agents = agents
+        this.comm = comm
         this.plan = []
         this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
         this.startPlanning()
+        if(this.verbose){
+            setInterval(() => {
+                console.log('['+this.agent.name+']\tTARGET', this.target.x, this.target.y, this.target.intention, this.target.score)
+                // console.log('PLAN', this.plan)
+            }, 200)
+        }
     }
     async startPlanning(){
-        setInterval(() => { //da rimpiazzare con il while true
-
+        while(true){
+            
             if(true/*blocking strategy not possible*/){
                 let targets = []
                 targets = this.getTargetsIdleMovement().concat(targets)
@@ -31,7 +39,7 @@ class Planner{
                     targets = this.getTargetsWithUtility().concat(targets)
                 }
                 for(const target of targets){
-                    let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents)
+                    let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
                     if(tmpPlan[0] != 'error'){
                         this.plan = tmpPlan
                         this.target = target
@@ -50,7 +58,7 @@ class Planner{
                 se posso o è necessario fare lo scambio di parcelle. Devo modificare il BFS per non considerare l'agente con l'id
                 che conosco. Nel caso in cui l'intention è delivery e tutti i path per il target passano per la posizione dell'altro
                 agent allora lo scambio è necessario. Se invece non è necessario devo decidere se farlo o meno.
-
+                
                 Lo scambio di parcelle tra gli agenti allunga di 2 il path per la consegna della parcella, più ovviamente il tempo che
                 l'altro agente impiega per arrivare al punto di scambio. Questo significa che lo scambio di parcelle è sempre da evitare, a 
                 meno che non sia l'unico path per una cella di delivery e l'intention corrente sia quella di fare la consegna.
@@ -77,21 +85,16 @@ class Planner{
                         each of our agents picks as target the closest delivery cells and blocks it
                     }
                 }
-        
+                
                 Altrimenti se ci sono più delivery cells devo identificare i choke point in cui posso bloccare l'accesso a tutte le delivery cells.
                 Se siamo sopra di punti e i nostri agenti hanno un path più corto di quello degli avversari allora posso bloccare i choke point.
                 
                 */
             }
-            
-            if(this.verbose){
-                console.log('['+this.agent.name+']\tTARGET', this.target.x, this.target.y, this.target.intention)
-                // console.log('PLAN', this.plan)
-            }
-        }, 100)
-        await new Promise(res => setImmediate(res))
+            await new Promise(res => setImmediate(res))
+        }
     }
-
+    
     getTargetsIdleMovement(){
         let targets = []
         for(let row = 0; row < this.map.getNRows(); row++){
@@ -111,10 +114,14 @@ class Planner{
             for(let col = 0; col < this.map.getNCols(); col++){
                 if(this.map.getMatrix()[row][col].type === 3 || this.map.getMatrix()[row][col].type === 1){
                     let score = this.getNormalCellUtility(row, col)
-                    targets.push(new Target(row, col, 'pickup', score))
+                    if(score > 0){
+                        targets.push(new Target(row, col, 'pickup', score))
+                    }
                 } else if(this.map.getMatrix()[row][col].type === 2){
                     let score = this.getDeliveryCellUtility(row, col)
-                    targets.push(new Target(row, col, 'delivery', score))
+                    if(score > 0){
+                        targets.push(new Target(row, col, 'delivery', score))
+                    }
                 }
             }
         }
@@ -147,16 +154,18 @@ class Planner{
 
         let distanceToAgent = 1
         if(parcelsRewardInCell != 0){
-            distanceToAgent =  Math.max(PathLengthBFS(x, y, this.agent.x, this.agent.y, this.map, this.agents), 0.1)
+            distanceToAgent =  Math.max(PathLengthBFS(x, y, this.agent.x, this.agent.y, this.map, this.agents, this.agent, this.otherAgent), 0.1)
         }
 
         let enemiesProximity = 1
         if(this.agents.getMap().size > 0){
             for (const agent of this.agents.getMap()){
-                let tmp = ManhattanDistance(x, y, agent[1].x, agent[1].y) + 1
-                tmp = - (1 / tmp) + 1
-                if(tmp < enemiesProximity){
-                    enemiesProximity = tmp
+                if(agent[1].id !== this.agent.id){
+                    let tmp = ManhattanDistance(x, y, agent[1].x, agent[1].y) + 1
+                    tmp = - (1 / tmp) + 1
+                    if(tmp < enemiesProximity){
+                        enemiesProximity = tmp
+                    }
                 }
             }
         }   
@@ -173,7 +182,7 @@ class Planner{
 
         let distanceToAgent = 1
         if(scoreParcelsCarriedByAgent != 0){
-            distanceToAgent = Math.max(PathLengthBFS(x, y, this.agent.x, this.agent.y, this.map, this.agents), 0.1)
+            distanceToAgent = Math.max(PathLengthBFS(x, y, this.agent.x, this.agent.y, this.map, this.agents, this.agent, this.otherAgent), 0.1)
         }
 
         return Math.pow(scoreParcelsCarriedByAgent, 0.8) / Math.pow(distanceToAgent, 1)

@@ -76,8 +76,8 @@ function PlanBFS(start, goal, explored){
  * @param {Agents} agents Agents object
  * @returns {Array} Array of moves to perform
  */
-function BFS(sx, sy, ex, ey, map, agents){
-    let agentsMap = []
+function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
+    let agentsMap = [] // 0 = free, 1 = enemy, 2 = friend other agent
     for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])
         for (let j = 0; j < map.getNCols(); j++){
@@ -86,7 +86,14 @@ function BFS(sx, sy, ex, ey, map, agents){
     }
     if(agents.getMap().size > 0){
         for (const agent of agents.getMap()){
-            agentsMap[agent[1].x][agent[1].y] = 1
+            if(agent[1].id !== thisAgent.id){
+                if(agent[1].id === otherAgent.id){
+                    // agentsMap[agent[1].x][agent[1].y] = 2
+                    agentsMap[agent[1].x][agent[1].y] = 1 // da cambiare con 2
+                } else {
+                    agentsMap[agent[1].x][agent[1].y] = 1
+                }
+            }
         }
     }
     let goal = new Cell(ex, ey)
@@ -127,7 +134,7 @@ function BFS(sx, sy, ex, ey, map, agents){
     return ['error']
 }
 
-function PathLengthBFS(sx, sy, ex, ey, map, agents){
+function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
     let agentsMap = []
     for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])
@@ -137,7 +144,14 @@ function PathLengthBFS(sx, sy, ex, ey, map, agents){
     }
     if(agents.getMap().size > 0){
         for (const agent of agents.getMap()){
-            agentsMap[agent[1].x][agent[1].y] = 1
+            if(agent[1].id !== thisAgent.id){
+                if(agent[1].id === otherAgent.id){
+                    // agentsMap[agent[1].x][agent[1].y] = 2
+                    agentsMap[agent[1].x][agent[1].y] = 1 // da cambiare con 2
+                } else {
+                    agentsMap[agent[1].x][agent[1].y] = 1
+                }
+            }
         }
     }
     let goal = new Cell(ex, ey)
