@@ -57,7 +57,10 @@ class Planner{
                 
                 */
             } else if(this.exchange){
-                
+                // console.log(PathLengthBFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent))
+                console.log(this.agent.name, 'exchange')
+                this.plan = []
+
                 // set targets of both agents the other agent position
                 // when both agents are 2 cells close, stop
                 // the agent who wants to the exchange makes one more move and drops the parcels
@@ -88,11 +91,22 @@ class Planner{
                     targets = this.getTargetsWithUtility().concat(targets)
                 }
                 for(const target of targets){
-                    let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
-
-                    if(tmpPlan[0] != 'error'){
-                        this.plan = tmpPlan
-                        this.target = target
+                    if(target.intention === 'delivery'){
+                        let pathLengthThroughAgent = PathLengthThroughAgent(this.agent.x, this.agent.y, target.x, target.y, this.map, this.agents, this.agent, this.otherAgent)
+                        if(pathLengthThroughAgent > 0){
+                            this.target = target
+                            this.exchangeMaster = true
+                            this.exchange = true
+                            this.comm.say(JSON.stringify({belief: 'EXCHANGE'}))
+                        }
+                    }
+                    if(!this.exchange){
+                        let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
+                        if(tmpPlan[0] != 'error'){
+                            this.plan = tmpPlan
+                            this.target = target
+                            break
+                        }
                         break
                     }
                 }
@@ -100,12 +114,6 @@ class Planner{
                     this.plan = this.plan.concat(['pickup'])
                 } else if(this.target.intention === 'delivery'){
                     this.plan = this.plan.concat(['putdown'])
-                    let pathLengthThroughAgent = PathLengthThroughAgent(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent)
-                    if(pathLengthThroughAgent > 0){
-                        this.exchangeMaster = true
-                        this.comm.say(JSON.stringify({belief: 'EXCHANGE'}))
-                        this.exchange = true
-                    }
                 }
             }
             await new Promise(res => setImmediate(res))
@@ -200,6 +208,7 @@ class Planner{
         let distanceToAgent = 1
         if(scoreParcelsCarriedByAgent != 0){
             distanceToAgent = Math.max(PathLengthBFS(x, y, this.agent.x, this.agent.y, this.map, this.agents, this.agent, this.otherAgent), 0.1)
+            // distanceToAgent = Math.max(PathLengthThroughAgent(this.agent.x, this.agent.y, x, y, this.map, this.agents, this.agent, this.otherAgent), 0.1)
         }
 
         return Math.pow(scoreParcelsCarriedByAgent, 0.8) / Math.pow(distanceToAgent, 1)

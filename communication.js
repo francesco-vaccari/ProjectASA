@@ -89,6 +89,7 @@ class CommunicationHandler{
         this.otherAgentParcels = otherAgentParcels
         this.thisAgentAgents = thisAgentAgents
         this.otherAgentAgents = otherAgentAgents
+        this.planner = planner
         this.verbose = verbose
         this.handleMessages()
     }
@@ -106,9 +107,11 @@ class CommunicationHandler{
                 } else if(json.belief === 'MAP'){
                     this.map.getMatrix()[json.x][json.y].lastSeen = 0
                 } else if(json.belief === 'EXCHANGE'){
-                    if(this.planner !== undefined){
-                        this.planner.exchange = true
+                    while(this.planner === undefined){
+                        console.log('wait')
+                        await new Promise(res => setImmediate(res))
                     }
+                    this.planner.exchange = true
                 } else if(json.belief === 'ENDEXCHANGE'){
                     if(this.planner !== undefined){
                         this.planner.exchange = false
