@@ -57,6 +57,7 @@ class Planner{
                 
                 */
             } else if(this.exchange){
+                
                 // set targets of both agents the other agent position
                 // when both agents are 2 cells close, stop
                 // the agent who wants to the exchange makes one more move and drops the parcels
@@ -102,8 +103,8 @@ class Planner{
                     let pathLengthThroughAgent = PathLengthThroughAgent(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent)
                     if(pathLengthThroughAgent > 0){
                         this.exchangeMaster = true
-                        console.log('['+this.agent.name+']\tEXCHANGE')
                         this.comm.say(JSON.stringify({belief: 'EXCHANGE'}))
+                        this.exchange = true
                     }
                 }
             }
