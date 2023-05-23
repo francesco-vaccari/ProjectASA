@@ -15,6 +15,7 @@ class Planner{
         this.verbose = verbose
         this.exchange = false
         this.exchangeMaster = false
+        this.blockStrategy = false
         this.map = map
         this.agent = agent
         this.otherAgent = otherAgent
@@ -33,8 +34,53 @@ class Planner{
     }
     async startPlanning(){
         while(true){
-            
-            if(true/*blocking strategy not possible and exchange not set*/){
+            if(this.blockStrategy){
+                // implement blocking strategy
+                /*
+                
+                Un possibile caso particolare è quello di bloccare i path degli agenti nemici verso le caselle di delivery, ma questo funziona 
+                solo se i due agenti nemici sono in celle i quali path verso celle di delivery passano tutti nelle posizioni in cui gli agenti 
+                si posizionerebbero per bloccare i path. Ovviamente questa strategia funziona solo in caso di vantaggio. Un'altra cosa è che 
+                dovremmo sapere con esattezza le posizioni di entrambi gli agenti nemici prima di poter eseguire questa strategia. Dopo l'esecuzione 
+                ci sposteremmo solo nel caso in cui lo score degli avversari superare il nostro. Una variante più semplice sarebbe quella di 
+                posizionarsi direttamente sulle celle di delivery nel caso in cui fossero solo due.
+                
+                if(N delivery cells < 3 and can reach with both agents){
+                    i can block the delivery cells directly
+                    if(we are up in score and both agents paths are shorter than enemies to delivery cells and enemies are visible){
+                        each of our agents picks as target the closest delivery cells and blocks it
+                    }
+                }
+                
+                Altrimenti se ci sono più delivery cells devo identificare i choke point in cui posso bloccare l'accesso a tutte le delivery cells.
+                Se siamo sopra di punti e i nostri agenti hanno un path più corto di quello degli avversari allora posso bloccare i choke point.
+                
+                */
+            } else if(this.exchange){
+                // set targets of both agents the other agent position
+                // when both agents are 2 cells close, stop
+                // the agent who wants to the exchange makes one more move and drops the parcels
+                // the agent then back tracks one move
+                // the other agent moves to the parcels and picks them up
+                // resume normal execution
+
+                // implement exchange check and execution
+                /*
+                nel caso in cui l'intention sia quella di delivery allora vado a vedere
+                se posso o è necessario fare lo scambio di parcelle. Devo modificare il BFS per non considerare l'agente con l'id
+                che conosco. Nel caso in cui l'intention è delivery e tutti i path per il target passano per la posizione dell'altro
+                agent allora lo scambio è necessario. Se invece non è necessario devo decidere se farlo o meno.
+                
+                Lo scambio di parcelle tra gli agenti allunga di 2 il path per la consegna della parcella, più ovviamente il tempo che
+                l'altro agente impiega per arrivare al punto di scambio. Questo significa che lo scambio di parcelle è sempre da evitare, a 
+                meno che non sia l'unico path per una cella di delivery e l'intention corrente sia quella di fare la consegna.
+                Una cosa da considerare è che l'agente che vuole fare lo scambio deve avere lo spazio di farlo, cioè una cella in cui spostarsi
+                dopo aver fatto il putdown. Quindi servirà implementare una sorva di comunicazione che dica all'altro agente di fare spazio nel 
+                caso non ce ne sia durante l'intention di scambio. Visto che il costo di fare lo scambio è due, ha senso farlo solo se tutti i 
+                path sono bloccati o se un path alternativo per consegnare è di almeno 2 mosse più lungo. C'è anche da capire come gestire il 
+                punto dello scambio.
+                */
+            } else {
                 let targets = []
                 targets = this.getTargetsIdleMovement().concat(targets)
                 if(this.agentKnowsParcels() || this.agentCarriesParcels()){
@@ -60,53 +106,6 @@ class Planner{
                         this.comm.say(JSON.stringify({belief: 'EXCHANGE'}))
                     }
                 }
-            } else if(this.exchange){
-                // set targets of both agents the other agent position
-                // when both agents are 2 cells close, stop
-                // the agent who wants to the exchange makes one more move and drops the parcels
-                // the agent then back tracks one move
-                // the other agent moves to the parcels and picks them up
-                // resume normal execution
-
-                // implement exchange check and execution
-                /*
-                nel caso in cui l'intention sia quella di delivery allora vado a vedere
-                se posso o è necessario fare lo scambio di parcelle. Devo modificare il BFS per non considerare l'agente con l'id
-                che conosco. Nel caso in cui l'intention è delivery e tutti i path per il target passano per la posizione dell'altro
-                agent allora lo scambio è necessario. Se invece non è necessario devo decidere se farlo o meno.
-                
-                Lo scambio di parcelle tra gli agenti allunga di 2 il path per la consegna della parcella, più ovviamente il tempo che
-                l'altro agente impiega per arrivare al punto di scambio. Questo significa che lo scambio di parcelle è sempre da evitare, a 
-                meno che non sia l'unico path per una cella di delivery e l'intention corrente sia quella di fare la consegna.
-                Una cosa da considerare è che l'agente che vuole fare lo scambio deve avere lo spazio di farlo, cioè una cella in cui spostarsi
-                dopo aver fatto il putdown. Quindi servirà implementare una sorva di comunicazione che dica all'altro agente di fare spazio nel 
-                caso non ce ne sia durante l'intention di scambio. Visto che il costo di fare lo scambio è due, ha senso farlo solo se tutti i 
-                path sono bloccati o se un path alternativo per consegnare è di almeno 2 mosse più lungo. C'è anche da capire come gestire il 
-                punto dello scambio.
-                */
-
-            } else {
-                // implement blocking strategy
-                /*
-                
-                Un possibile caso particolare è quello di bloccare i path degli agenti nemici verso le caselle di delivery, ma questo funziona 
-                solo se i due agenti nemici sono in celle i quali path verso celle di delivery passano tutti nelle posizioni in cui gli agenti 
-                si posizionerebbero per bloccare i path. Ovviamente questa strategia funziona solo in caso di vantaggio. Un'altra cosa è che 
-                dovremmo sapere con esattezza le posizioni di entrambi gli agenti nemici prima di poter eseguire questa strategia. Dopo l'esecuzione 
-                ci sposteremmo solo nel caso in cui lo score degli avversari superare il nostro. Una variante più semplice sarebbe quella di 
-                posizionarsi direttamente sulle celle di delivery nel caso in cui fossero solo due.
-                
-                if(N delivery cells < 3 and can reach with both agents){
-                    i can block the delivery cells directly
-                    if(we are up in score and both agents paths are shorter than enemies to delivery cells and enemies are visible){
-                        each of our agents picks as target the closest delivery cells and blocks it
-                    }
-                }
-                
-                Altrimenti se ci sono più delivery cells devo identificare i choke point in cui posso bloccare l'accesso a tutte le delivery cells.
-                Se siamo sopra di punti e i nostri agenti hanno un path più corto di quello degli avversari allora posso bloccare i choke point.
-                
-                */
             }
             await new Promise(res => setImmediate(res))
         }
