@@ -17,7 +17,7 @@ const otherAgentParcels = new OtherAgentParcels(parcels, false)
 const thisAgentAgents = new ThisAgentAgents(client, agents, comm, false)
 const otherAgentAgents = new OtherAgentAgents(agents, false)
 const planner = new Planner(client, map, agent, otherAgent, parcels, agents, comm, false)
-const commHandler = new CommunicationHandler(comm, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, false)
+const commHandler = new CommunicationHandler(comm, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, planner, false)
 
 var plan = []
 var action = undefined

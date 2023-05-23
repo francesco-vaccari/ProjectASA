@@ -452,6 +452,9 @@ class Parcels{
                 }
             }
         }
+        if(this.verbose){
+            this.print()
+        }
     }
     print(){
         console.log('\n///////[PARCEL LIST UNIFIED]///////')
@@ -485,6 +488,12 @@ class Agents{
     }
     joinMaps(){
         this.agents.clear()
+        if(this.agent.id !== undefined){
+            this.agents.set(this.agent.id, new Agent(this.agent.id, this.agent.name, this.agent.x, this.agent.y, this.agent.score))
+        }
+        if(this.otherAgent.id !== undefined){
+            this.agents.set(this.otherAgent.id, new Agent(this.otherAgent.id, this.otherAgent.name, this.otherAgent.x, this.otherAgent.y, this.otherAgent.score))
+        }
         for(const agent of this.mapOfThisAgent){
             this.agents.set(agent[0], agent[1])
         }
@@ -498,6 +507,9 @@ class Agents{
                     }
                 }
             }
+        }
+        if(this.verbose){
+            this.print()
         }
     }
     print(){

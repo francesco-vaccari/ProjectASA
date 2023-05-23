@@ -81,7 +81,7 @@ class Communication{
 }
 
 class CommunicationHandler{
-    constructor(comm, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, verbose=false){
+    constructor(comm, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, planner, verbose=false){
         this.comm = comm
         this.otherAgent = otherAgent
         this.map = map
@@ -105,7 +105,16 @@ class CommunicationHandler{
                     this.otherAgentAgents.clearAndAddAll(json.map)
                 } else if(json.belief === 'MAP'){
                     this.map.getMatrix()[json.x][json.y].lastSeen = 0
+                } else if(json.belief === 'EXCHANGE'){
+                    if(this.planner !== undefined){
+                        this.planner.exchange = true
+                    }
+                } else if(json.belief === 'ENDEXCHANGE'){
+                    if(this.planner !== undefined){
+                        this.planner.exchange = false
+                    }
                 }
+
                 if(this.verbose){
                     console.log('[HANDLE]\t', json)
                 }

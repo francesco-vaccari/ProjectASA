@@ -3,12 +3,13 @@ function ManhattanDistance(x1, y1, x2, y2){
 }
 
 class Cell{
-    constructor(x, y, parentx=-1, parenty=-1, depth=0){
+    constructor(x, y, parentx=-1, parenty=-1, depth=0, throughAgent=false){
         this.x = x
         this.y = y
         this.parentx = parentx
         this.parenty = parenty
         this.depth = depth
+        this.throughAgent = throughAgent
     }
     print(){
         console.log('Cell: ', this.x, this.y, this.parentx, this.parenty)
@@ -31,6 +32,7 @@ function computeChild(child, map, explored, queue, agentsMap){
         })
         return (!already_explored && !already_queued)
     }
+    return false
 }
 
 function PlanBFS(start, goal, explored){
@@ -88,8 +90,7 @@ function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
         for (const agent of agents.getMap()){
             if(agent[1].id !== thisAgent.id){
                 if(agent[1].id === otherAgent.id){
-                    // agentsMap[agent[1].x][agent[1].y] = 2
-                    agentsMap[agent[1].x][agent[1].y] = 1 // da cambiare con 2
+                    agentsMap[agent[1].x][agent[1].y] = 1
                 } else {
                     agentsMap[agent[1].x][agent[1].y] = 1
                 }
@@ -146,8 +147,7 @@ function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
         for (const agent of agents.getMap()){
             if(agent[1].id !== thisAgent.id){
                 if(agent[1].id === otherAgent.id){
-                    // agentsMap[agent[1].x][agent[1].y] = 2
-                    agentsMap[agent[1].x][agent[1].y] = 1 // da cambiare con 2
+                    agentsMap[agent[1].x][agent[1].y] = 1
                 } else {
                     agentsMap[agent[1].x][agent[1].y] = 1
                 }
@@ -193,4 +193,103 @@ function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
     return 1000
 }
 
-export { ManhattanDistance, BFS, PathLengthBFS }
+function computeChild2(child, map, explored, queue, agentsMap){
+    let throughAgent = false
+    if(child.x >= 0 && child.y >= 0 && child.x < map.getNRows() && child.y < map.getNCols() && map.matrix[child.x][child.y].type !== 0 && agentsMap[child.x][child.y] !== 1){
+        if(agentsMap[child.x][child.y] === 2){
+            throughAgent = true
+        }
+        let already_explored = false
+        explored.forEach((cell) => {
+            if(cell.x === child.x && cell.y === child.y){
+                already_explored = true
+            }
+        })
+        let already_queued = false
+        queue.forEach((cell) => {
+            if(cell.x === child.x && cell.y === child.y){
+                already_queued = true
+            }
+        })
+        return [!already_explored && !already_queued, throughAgent]
+    }
+    return [false, throughAgent]
+}
+
+function PathLengthThroughAgent(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
+    let agentsMap = []
+    for (let i = 0; i < map.getNRows(); i++){
+        agentsMap.push([])
+        for (let j = 0; j < map.getNCols(); j++){
+            agentsMap[i].push(0)
+        }
+    }
+    if(agents.getMap().size > 0){
+        for (const agent of agents.getMap()){
+            if(agent[1].id !== thisAgent.id){
+                if(agent[1].id === otherAgent.id){
+                    agentsMap[agent[1].x][agent[1].y] = 2
+                } else {
+                    agentsMap[agent[1].x][agent[1].y] = 1
+                }
+            }
+        }
+    }
+    let goal = new Cell(ex, ey)
+    let start = new Cell(sx, sy)
+    let queue = []
+    let explored = []
+    queue.push(start)
+    while(queue.length > 0){
+        
+        let current = queue.shift()
+
+        explored.push(current)
+
+        if(current.x === goal.x && current.y === goal.y){
+            if(current.throughAgent){
+                return current.depth
+            } else {
+                return -1
+            }
+        }
+
+        let children = []
+        let child = computeChild2(new Cell(current.x - 1, current.y), map, explored, queue, agentsMap)
+        if(child[0]){
+            let c = new Cell(current.x - 1, current.y)
+            c.throughAgent = child[1]
+            children.push(c)
+        }
+        child = computeChild2(new Cell(current.x + 1, current.y), map, explored, queue, agentsMap)
+        if(child[0]){
+            let c = new Cell(current.x + 1, current.y)
+            c.throughAgent = child[1]
+            children.push(c)
+        }
+        child = computeChild2(new Cell(current.x, current.y - 1), map, explored, queue, agentsMap)
+        if(child[0]){
+            let c = new Cell(current.x, current.y - 1)
+            c.throughAgent = child[1]
+            children.push(c)
+        }
+        child = computeChild2(new Cell(current.x, current.y + 1), map, explored, queue, agentsMap)
+        if(child[0]){
+            let c = new Cell(current.x, current.y + 1)
+            c.throughAgent = child[1]
+            children.push(c)
+        }
+
+        children.forEach((child) => {
+            queue.push(child)
+            child.parentx = current.x
+            child.parenty = current.y
+            child.depth = current.depth + 1
+            child.throughAgent = child.throughAgent || current.throughAgent
+        })
+    }
+    return -1
+}
+
+
+export { ManhattanDistance, BFS, PathLengthBFS, PathLengthThroughAgent }

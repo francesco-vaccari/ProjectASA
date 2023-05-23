@@ -1,4 +1,4 @@
-import { ManhattanDistance, BFS, PathLengthBFS  } from "./util.js"
+import { ManhattanDistance, BFS, PathLengthBFS, PathLengthThroughAgent } from "./util.js"
 
 class Target{
     constructor(x, y, intention='error', score=0){
@@ -13,6 +13,8 @@ class Planner{
     constructor(client, map, agent, otherAgent, parcels, agents, comm, verbose=false){
         this.client = client
         this.verbose = verbose
+        this.exchange = false
+        this.exchangeMaster = false
         this.map = map
         this.agent = agent
         this.otherAgent = otherAgent
@@ -32,7 +34,7 @@ class Planner{
     async startPlanning(){
         while(true){
             
-            if(true/*blocking strategy not possible*/){
+            if(true/*blocking strategy not possible and exchange not set*/){
                 let targets = []
                 targets = this.getTargetsIdleMovement().concat(targets)
                 if(this.agentKnowsParcels() || this.agentCarriesParcels()){
@@ -40,6 +42,7 @@ class Planner{
                 }
                 for(const target of targets){
                     let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
+
                     if(tmpPlan[0] != 'error'){
                         this.plan = tmpPlan
                         this.target = target
@@ -50,8 +53,21 @@ class Planner{
                     this.plan = this.plan.concat(['pickup'])
                 } else if(this.target.intention === 'delivery'){
                     this.plan = this.plan.concat(['putdown'])
+                    let pathLengthThroughAgent = PathLengthThroughAgent(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent)
+                    if(pathLengthThroughAgent > 0){
+                        this.exchangeMaster = true
+                        console.log('['+this.agent.name+']\tEXCHANGE')
+                        this.comm.say(JSON.stringify({belief: 'EXCHANGE'}))
+                    }
                 }
-                
+            } else if(this.exchange){
+                // set targets of both agents the other agent position
+                // when both agents are 2 cells close, stop
+                // the agent who wants to the exchange makes one more move and drops the parcels
+                // the agent then back tracks one move
+                // the other agent moves to the parcels and picks them up
+                // resume normal execution
+
                 // implement exchange check and execution
                 /*
                 nel caso in cui l'intention sia quella di delivery allora vado a vedere
@@ -68,6 +84,7 @@ class Planner{
                 path sono bloccati o se un path alternativo per consegnare è di almeno 2 mosse più lungo. C'è anche da capire come gestire il 
                 punto dello scambio.
                 */
+
             } else {
                 // implement blocking strategy
                 /*
