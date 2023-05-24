@@ -68,17 +68,7 @@ function PlanBFS(start, goal, explored){
     return plan.reverse()
 }
 
-/**
- * Computes the plan to get from the starting cell to the ending cell. Returns an array that contains the series of moves to perform.
- * @param {Number} sx Starting cell x coordinate
- * @param {Number} sy Starting cell y coordinate
- * @param {Number} ex Ending cell x coordinate
- * @param {Number} ey Ending cell y coordinate
- * @param {GameMap} map GameMap object
- * @param {Agents} agents Agents object
- * @returns {Array} Array of moves to perform
- */
-function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
+function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, throughAgent=false){
     let agentsMap = [] // 0 = free, 1 = enemy, 2 = friend other agent
     for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])
@@ -90,7 +80,11 @@ function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
         for (const agent of agents.getMap()){
             if(agent[1].id !== thisAgent.id){
                 if(agent[1].id === otherAgent.id){
-                    agentsMap[agent[1].x][agent[1].y] = 1
+                    if(throughAgent){
+                        agentsMap[agent[1].x][agent[1].y] = 2
+                    } else {
+                        agentsMap[agent[1].x][agent[1].y] = 1
+                    }
                 } else {
                     agentsMap[agent[1].x][agent[1].y] = 1
                 }
@@ -109,33 +103,50 @@ function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
         explored.push(current)
 
         if(current.x === goal.x && current.y === goal.y){
-            return PlanBFS(start, goal, explored)
+            return [PlanBFS(start, goal, explored), current.throughAgent]
         }
 
         let children = []
-        if(computeChild(new Cell(current.x - 1, current.y), map, explored, queue, agentsMap)){
-            children.push(new Cell(current.x - 1, current.y))
+        let child = new Cell(current.x - 1, current.y)
+        if(computeChild(child, map, explored, queue, agentsMap)){
+            if(agentsMap[current.x - 1][current.y] === 2){
+                child.throughAgent = true
+            }
+            children.push(child)
         }
-        if(computeChild(new Cell(current.x + 1, current.y), map, explored, queue, agentsMap)){
-            children.push(new Cell(current.x + 1, current.y))
+        child = new Cell(current.x + 1, current.y)
+        if(computeChild(child, map, explored, queue, agentsMap)){
+            if(agentsMap[current.x + 1][current.y] === 2){
+                child.throughAgent = true
+            }
+            children.push(child)
         }
-        if(computeChild(new Cell(current.x, current.y - 1), map, explored, queue, agentsMap)){
-            children.push(new Cell(current.x, current.y - 1))
+        child = new Cell(current.x, current.y - 1)
+        if(computeChild(child, map, explored, queue, agentsMap)){
+            if(agentsMap[current.x][current.y - 1] === 2){
+                child.throughAgent = true
+            }
+            children.push(child)
         }
+        child = new Cell(current.x, current.y + 1)
         if(computeChild(new Cell(current.x, current.y + 1), map, explored, queue, agentsMap)){
-            children.push(new Cell(current.x, current.y + 1))
+            if(agentsMap[current.x][current.y + 1] === 2){
+                child.throughAgent = true
+            }
+            children.push(child)
         }
 
         children.forEach((child) => {
             queue.push(child)
             child.parentx = current.x
             child.parenty = current.y
+            child.throughAgent = current.throughAgent || child.throughAgent
         })
     }
-    return ['error']
+    return [['error'], false]
 }
 
-function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
+function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, throughAgent=false){
     let agentsMap = []
     for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])
@@ -147,7 +158,11 @@ function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
         for (const agent of agents.getMap()){
             if(agent[1].id !== thisAgent.id){
                 if(agent[1].id === otherAgent.id){
-                    agentsMap[agent[1].x][agent[1].y] = 1
+                    if(throughAgent){
+                        agentsMap[agent[1].x][agent[1].y] = 2
+                    } else {
+                        agentsMap[agent[1].x][agent[1].y] = 1
+                    }
                 } else {
                     agentsMap[agent[1].x][agent[1].y] = 1
                 }
@@ -166,21 +181,37 @@ function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
         explored.push(current)
 
         if(current.x === goal.x && current.y === goal.y){
-            return current.depth
+            return [current.depth, current.throughAgent]
         }
 
         let children = []
-        if(computeChild(new Cell(current.x - 1, current.y), map, explored, queue, agentsMap)){
-            children.push(new Cell(current.x - 1, current.y))
+        let child = new Cell(current.x - 1, current.y)
+        if(computeChild(child, map, explored, queue, agentsMap)){
+            if(agentsMap[current.x - 1][current.y] === 2){
+                child.throughAgent = true
+            }
+            children.push(child)
         }
-        if(computeChild(new Cell(current.x + 1, current.y), map, explored, queue, agentsMap)){
-            children.push(new Cell(current.x + 1, current.y))
+        child = new Cell(current.x + 1, current.y)
+        if(computeChild(child, map, explored, queue, agentsMap)){
+            if(agentsMap[current.x + 1][current.y] === 2){
+                child.throughAgent = true
+            }
+            children.push(child)
         }
-        if(computeChild(new Cell(current.x, current.y - 1), map, explored, queue, agentsMap)){
-            children.push(new Cell(current.x, current.y - 1))
+        child = new Cell(current.x, current.y - 1)
+        if(computeChild(child, map, explored, queue, agentsMap)){
+            if(agentsMap[current.x][current.y - 1] === 2){
+                child.throughAgent = true
+            }
+            children.push(child)
         }
+        child = new Cell(current.x, current.y + 1)
         if(computeChild(new Cell(current.x, current.y + 1), map, explored, queue, agentsMap)){
-            children.push(new Cell(current.x, current.y + 1))
+            if(agentsMap[current.x][current.y + 1] === 2){
+                child.throughAgent = true
+            }
+            children.push(child)
         }
 
         children.forEach((child) => {
@@ -188,108 +219,10 @@ function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
             child.parentx = current.x
             child.parenty = current.y
             child.depth = current.depth + 1
+            child.throughAgent = current.throughAgent || child.throughAgent
         })
     }
-    return 1000
+    return [1000, false]
 }
 
-function computeChild2(child, map, explored, queue, agentsMap){
-    let throughAgent = false
-    if(child.x >= 0 && child.y >= 0 && child.x < map.getNRows() && child.y < map.getNCols() && map.matrix[child.x][child.y].type !== 0 && agentsMap[child.x][child.y] !== 1){
-        if(agentsMap[child.x][child.y] === 2){
-            throughAgent = true
-        }
-        let already_explored = false
-        explored.forEach((cell) => {
-            if(cell.x === child.x && cell.y === child.y){
-                already_explored = true
-            }
-        })
-        let already_queued = false
-        queue.forEach((cell) => {
-            if(cell.x === child.x && cell.y === child.y){
-                already_queued = true
-            }
-        })
-        return [!already_explored && !already_queued, throughAgent]
-    }
-    return [false, throughAgent]
-}
-
-function PathLengthThroughAgent(sx, sy, ex, ey, map, agents, thisAgent, otherAgent){
-    let agentsMap = []
-    for (let i = 0; i < map.getNRows(); i++){
-        agentsMap.push([])
-        for (let j = 0; j < map.getNCols(); j++){
-            agentsMap[i].push(0)
-        }
-    }
-    if(agents.getMap().size > 0){
-        for (const agent of agents.getMap()){
-            if(agent[1].id !== thisAgent.id){
-                if(agent[1].id === otherAgent.id){
-                    agentsMap[agent[1].x][agent[1].y] = 2
-                } else {
-                    agentsMap[agent[1].x][agent[1].y] = 1
-                }
-            }
-        }
-    }
-    let goal = new Cell(ex, ey)
-    let start = new Cell(sx, sy)
-    let queue = []
-    let explored = []
-    queue.push(start)
-    while(queue.length > 0){
-        
-        let current = queue.shift()
-
-        explored.push(current)
-
-        if(current.x === goal.x && current.y === goal.y){
-            if(current.throughAgent){
-                return current.depth
-            } else {
-                return -1
-            }
-        }
-
-        let children = []
-        let child = computeChild2(new Cell(current.x - 1, current.y), map, explored, queue, agentsMap)
-        if(child[0]){
-            let c = new Cell(current.x - 1, current.y)
-            c.throughAgent = child[1]
-            children.push(c)
-        }
-        child = computeChild2(new Cell(current.x + 1, current.y), map, explored, queue, agentsMap)
-        if(child[0]){
-            let c = new Cell(current.x + 1, current.y)
-            c.throughAgent = child[1]
-            children.push(c)
-        }
-        child = computeChild2(new Cell(current.x, current.y - 1), map, explored, queue, agentsMap)
-        if(child[0]){
-            let c = new Cell(current.x, current.y - 1)
-            c.throughAgent = child[1]
-            children.push(c)
-        }
-        child = computeChild2(new Cell(current.x, current.y + 1), map, explored, queue, agentsMap)
-        if(child[0]){
-            let c = new Cell(current.x, current.y + 1)
-            c.throughAgent = child[1]
-            children.push(c)
-        }
-
-        children.forEach((child) => {
-            queue.push(child)
-            child.parentx = current.x
-            child.parenty = current.y
-            child.depth = current.depth + 1
-            child.throughAgent = child.throughAgent || current.throughAgent
-        })
-    }
-    return -1
-}
-
-
-export { ManhattanDistance, BFS, PathLengthBFS, PathLengthThroughAgent }
+export { ManhattanDistance, BFS, PathLengthBFS }

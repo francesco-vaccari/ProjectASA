@@ -107,15 +107,13 @@ class CommunicationHandler{
                 } else if(json.belief === 'MAP'){
                     this.map.getMatrix()[json.x][json.y].lastSeen = 0
                 } else if(json.belief === 'EXCHANGE'){
-                    while(this.planner === undefined){
-                        console.log('wait')
-                        await new Promise(res => setImmediate(res))
-                    }
-                    this.planner.exchange = true
+                    this.planner.exchangeSlave = true
+                    this.planner.plan = []
+                    this.planner.target.intention = 'exchange'
                 } else if(json.belief === 'ENDEXCHANGE'){
-                    if(this.planner !== undefined){
-                        this.planner.exchange = false
-                    }
+                    this.planner.exchangeSlave = false
+                } else if(json.belief === 'TARGET'){
+                    this.planner.target = json.target
                 }
 
                 if(this.verbose){
