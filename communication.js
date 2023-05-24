@@ -110,8 +110,17 @@ class CommunicationHandler{
                     this.planner.exchangeSlave = true
                     this.planner.plan = []
                     this.planner.target.intention = 'exchange'
+                    this.planner.nParcelsCarried = this.planner.getNParcelsCarried()
+                } else if(json.belief === 'ENDEXCHANGETARGET'){
+                    this.planner.endExchangeTarget.x = json.target.x
+                    this.planner.endExchangeTarget.y = json.target.y
+                    this.planner.endExchangeTarget.intention = 'exchange'
                 } else if(json.belief === 'ENDEXCHANGE'){
                     this.planner.exchangeSlave = false
+                    this.planner.exchangeMaster = false
+                    this.planner.endExchangeTarget.x = -1
+                    this.planner.endExchangeTarget.y = -1
+                    this.planner.endExchangeTarget.intention = 'error'
                 } else if(json.belief === 'TARGET'){
                     this.planner.target = json.target
                 }
