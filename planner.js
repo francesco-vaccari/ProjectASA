@@ -132,10 +132,11 @@ class Planner{
                     }
                     
                     // calculate path to get to two cells of distance for both agents and tell target
-                    // then make one more step and put down parcels
-                    // then move in any direction, if this is not succesfful there might be problems
-                    // tell other agent to make move towards parcels and pick up
-                    // resume normal execution
+                    // then makes one more step towards other agent
+                    // putdowns parcels carried
+                    // makes one step back and tells other agent the new target (the parcels on the ground)
+                    // other agent picks up parcels and ends the exchange intention for both agents
+                    // resume normal execution with now the slave with all the parcels and the master with none
 
                 } else {
                     let targets = []

@@ -81,8 +81,9 @@ class Communication{
 }
 
 class CommunicationHandler{
-    constructor(comm, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, planner, verbose=false){
+    constructor(comm, agent, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, planner, verbose=false){
         this.comm = comm
+        this.agent = agent
         this.otherAgent = otherAgent
         this.map = map
         this.thisAgentParcels = thisAgentParcels
