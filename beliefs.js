@@ -344,6 +344,15 @@ class ThisAgentAgents{
     }
 }
 
+class Target{
+    constructor(x, y, intention='error', score=0){
+        this.x = x
+        this.y = y
+        this.intention = intention
+        this.score = score
+    }
+}
+
 class OtherAgent{
     constructor(verbose=false){
         this.verbose = verbose
@@ -352,6 +361,8 @@ class OtherAgent{
         this.x = undefined
         this.y = undefined
         this.score = undefined
+        this.target = new Target(undefined, undefined)
+        this.scoreParcelsCarried = 0
     }
     set(json){
         this.id = json.id
@@ -364,7 +375,7 @@ class OtherAgent{
         }
     }
     print(){
-        console.log('[OTHERAGENT]\t', this.id, this.name, this.x, this.y, this.score)
+        console.log('[OTHERAGENT]\t', this.name, this.x, this.y, this.score, '\tCarried: ', this.scoreParcelsCarried, '\tTarget: ', this.target.x, this.target.y, this.target.intention)
     }
 }
 

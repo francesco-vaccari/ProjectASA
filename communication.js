@@ -111,7 +111,6 @@ class CommunicationHandler{
                     this.planner.exchangeSlave = true
                     this.planner.plan = []
                     this.planner.target.intention = 'exchange'
-                    this.planner.nParcelsCarried = this.planner.getNParcelsCarried()
                 } else if(json.belief === 'ENDEXCHANGETARGET'){
                     this.planner.endExchangeTarget.x = json.target.x
                     this.planner.endExchangeTarget.y = json.target.y
@@ -124,6 +123,10 @@ class CommunicationHandler{
                     this.planner.endExchangeTarget.intention = 'error'
                 } else if(json.belief === 'TARGET'){
                     this.planner.target = json.target
+                } else if(json.belief === 'TARGETUPDATE'){
+                    this.otherAgent.target = json.target
+                } else if(json.belief === 'CARRYUPDATE'){
+                    this.otherAgent.scoreParcelsCarried = json.score
                 }
 
                 if(this.verbose){
