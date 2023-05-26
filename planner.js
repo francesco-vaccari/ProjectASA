@@ -204,8 +204,10 @@ class Planner{
                 scoreParcelsCarried += parcel[1].reward
             }
         }
-        console.log('scoreParcelsCarried: ' + scoreParcelsCarried)
-        if(scoreParcelsCarried > 0){
+        if(scoreParcelsCarried > 0 && this.target.intention === 'delivery'){
+            let distanceToDeliveryCell = PathLengthBFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent)
+            let distanceToOtherAgent = PathLengthBFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)
+            let scoreParcelsCarriedByOtherAgent = this.otherAgent.scoreParcelsCarried
             /*
             L'utility deve essere un misto di:
             - distanza dalla cella di delivery
