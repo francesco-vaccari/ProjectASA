@@ -124,6 +124,7 @@ class ThisAgentParcels{
                 for(const parcel of this.map){
                     if(!parcel[1].visible && ManhattanDistance(this.agent.x, this.agent.y, parcel[1].x, parcel[1].y) < this.conf.parcelsViewingDistance){
                         this.map.delete(parcel[0])
+                        this.comm.say(JSON.stringify({belief: 'DELETEPARCEL', parcel: parcel[1]}))
                     }
                 }
             }
@@ -144,6 +145,9 @@ class ThisAgentParcels{
         } else {
             this.map.set(parcel.id, parcel)
         }
+    }
+    remove(parcel){
+        this.map.delete(parcel.id)
     }
     print(){
         console.log('\n///////[PARCEL LIST]///////')
@@ -453,13 +457,11 @@ class Parcels{
             this.parcels.set(parcel[0], parcel[1])
         }
         for(const parcel of this.mapOfOtherAgent){
-            if(this.parcels.has(parcel[0])){
-                if(parcel[1].visible && !this.parcels.get(parcel[0]).visible){
+            if(!this.parcels.has(parcel[0])){
+                this.parcels.set(parcel[0], parcel[1])
+            } else {
+                if(!this.parcels.get(parcel[0].visible) && parcel[1].visible){
                     this.parcels.set(parcel[0], parcel[1])
-                } else {
-                    if(!this.parcels.has(parcel[0])){
-                        this.parcels.set(parcel[0], parcel[1])
-                    }
                 }
             }
         }
@@ -509,13 +511,11 @@ class Agents{
             this.agents.set(agent[0], agent[1])
         }
         for(const agent of this.mapOfOtherAgent){
-            if(this.agents.has(agent[0])){
-                if(agent[1].visible && !this.agents.get(agent[0]).visible){
+            if(!this.agents.has(agent[0])){
+                this.agents.set(agent[0], agent[1])
+            } else {
+                if(!this.agents.get(agent[0].visible) && agent[1].visible){
                     this.agents.set(agent[0], agent[1])
-                } else {
-                    if(!this.agents.has(agent[0])){
-                        this.agents.set(agent[0], agent[1])
-                    }
                 }
             }
         }

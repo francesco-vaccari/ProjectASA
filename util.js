@@ -129,7 +129,7 @@ function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, throughAgent=fa
             children.push(child)
         }
         child = new Cell(current.x, current.y + 1)
-        if(computeChild(new Cell(current.x, current.y + 1), map, explored, queue, agentsMap)){
+        if(computeChild(child, map, explored, queue, agentsMap)){
             if(agentsMap[current.x][current.y + 1] === 2){
                 child.throughAgent = true
             }
@@ -207,7 +207,7 @@ function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, throu
             children.push(child)
         }
         child = new Cell(current.x, current.y + 1)
-        if(computeChild(new Cell(current.x, current.y + 1), map, explored, queue, agentsMap)){
+        if(computeChild(child, map, explored, queue, agentsMap)){
             if(agentsMap[current.x][current.y + 1] === 2){
                 child.throughAgent = true
             }

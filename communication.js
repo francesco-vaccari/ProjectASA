@@ -103,34 +103,37 @@ class CommunicationHandler{
                     this.otherAgent.set(json)
                 } else if (json.belief === 'PARCELS'){
                     this.otherAgentParcels.clearAndAddAll(json.map)
+                } else if (json.belief === 'DELETEPARCEL'){
+                    this.thisAgentParcels.remove(json.parcel)
                 } else if (json.belief === 'AGENTS'){
                     this.otherAgentAgents.clearAndAddAll(json.map)
                 } else if(json.belief === 'MAP'){
                     this.map.getMatrix()[json.x][json.y].lastSeen = 0
-                } else if(json.belief === 'EXCHANGE'){
-                    this.planner.exchangeSlave = true
-                    this.planner.plan = []
-                    this.planner.target.intention = 'exchange'
-                } else if(json.belief === 'ENDEXCHANGETARGET'){
-                    this.planner.endExchangeTarget.x = json.target.x
-                    this.planner.endExchangeTarget.y = json.target.y
-                    this.planner.endExchangeTarget.intention = 'exchange'
-                } else if(json.belief === 'ENDEXCHANGE'){
-                    this.planner.exchangeSlave = false
-                    this.planner.exchangeMaster = false
-                    this.planner.endExchangeTarget.x = -1
-                    this.planner.endExchangeTarget.y = -1
-                    this.planner.endExchangeTarget.intention = 'error'
-                } else if(json.belief === 'TARGET'){
-                    this.planner.target = json.target
                 } else if(json.belief === 'TARGETUPDATE'){
                     this.otherAgent.target = json.target
                 } else if(json.belief === 'CARRYUPDATE'){
                     this.otherAgent.scoreParcelsCarried = json.score
+                } else if(json.belief === 'STARTEXCHANGE'){
+                    this.planner.exchangeSlave = true
+                    this.planner.plan = []
+                    this.planner.target.x =  this.agent.x
+                    this.planner.target.y =  this.agent.y
+                    this.planner.target.intention = 'exchange'
+                } else if(json.belief === 'EXCHANGETARGET'){
+                    this.planner.target = json.target
+                } else if(json.belief === 'ENDEXCHANGETARGET'){
+                    this.planner.endExchangeTarget = json.target
+                } else if(json.belief === 'ENDEXCHANGE'){
+                    this.planner.exchangeMaster = false
+                    this.planner.exchangeSlave = false
+                    this.planner.plan = []
+                    this.planner.endExchangeTarget.x = -1
+                    this.planner.endExchangeTarget.y = -1
+                    this.planner.endExchangeTarget.intention = 'error'
                 }
 
                 if(this.verbose){
-                    console.log('[HANDLE]\t', json)
+                    console.log('[HANDLE]\tMessages in buffer ', this.comm.buffer.length)
                 }
             }
             await new Promise(res => setImmediate(res))

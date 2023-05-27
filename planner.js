@@ -5,8 +5,9 @@ setInterval(() => {
     sendLimit = true
 }, 10)
 
+
 class Target{
-    constructor(x, y, intention='error', score=0){
+    constructor(x, y, intention='changeERRORINITIALIZATIONTARGET', score=0){
         this.x = x
         this.y = y
         this.intention = intention
@@ -18,10 +19,10 @@ class Planner{
     constructor(client, map, agent, otherAgent, parcels, agents, comm, verbose=false){
         this.client = client
         this.verbose = verbose
+        this.blockStrategy = false
         this.exchangeMaster = false
         this.exchangeSlave = false
         this.endExchangeTarget = new Target(-1, -1, 'error', 0)
-        this.blockStrategy = false
         this.map = map
         this.agent = agent
         this.otherAgent = otherAgent
@@ -29,7 +30,7 @@ class Planner{
         this.agents = agents
         this.comm = comm
         this.plan = ['error']
-        this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
+        this.target = new Target(this.agent.x, this.agent.y, 'changeERRORINITCONSTRPLANNER', 0)
         this.startPlanning()
         this.sendTargetToOtherAgent()
         this.sendScoreParcelsCarriedToOtherAgent()
@@ -37,75 +38,74 @@ class Planner{
             setInterval(() => {
                 console.log('['+this.agent.name+']\tTARGET', this.target.x, this.target.y, this.target.intention)
                 // console.log('PLAN', this.plan)
-            }, 200)
+            }, 100)
         }
     }
     async startPlanning(){
         while(true){
-            if(this.checkAllInitialized()){ // probably not needed to check all initialized
+            if(this.blockStrategy){
+                // implement blocking strategy
+                /*
                 
-                if(this.blockStrategy){
-                    // implement blocking strategy
-                    /*
-                    
-                    Un possibile caso particolare è quello di bloccare i path degli agenti nemici verso le caselle di delivery, ma questo funziona 
-                    solo se i due agenti nemici sono in celle i quali path verso celle di delivery passano tutti nelle posizioni in cui gli agenti 
-                    si posizionerebbero per bloccare i path. Ovviamente questa strategia funziona solo in caso di vantaggio. Un'altra cosa è che 
-                    dovremmo sapere con esattezza le posizioni di entrambi gli agenti nemici prima di poter eseguire questa strategia. Dopo l'esecuzione 
-                    ci sposteremmo solo nel caso in cui lo score degli avversari superare il nostro. Una variante più semplice sarebbe quella di 
-                    posizionarsi direttamente sulle celle di delivery nel caso in cui fossero solo due.
-                    
-                    if(N delivery cells < 3 and can reach with both agents){
-                        i can block the delivery cells directly
-                        if(we are up in score and both agents paths are shorter than enemies to delivery cells and enemies are visible){
-                            each of our agents picks as target the closest delivery cells and blocks it
-                        }
+                Un possibile caso particolare è quello di bloccare i path degli agenti nemici verso le caselle di delivery, ma questo funziona 
+                solo se i due agenti nemici sono in celle i quali path verso celle di delivery passano tutti nelle posizioni in cui gli agenti 
+                si posizionerebbero per bloccare i path. Ovviamente questa strategia funziona solo in caso di vantaggio. Un'altra cosa è che 
+                dovremmo sapere con esattezza le posizioni di entrambi gli agenti nemici prima di poter eseguire questa strategia. Dopo l'esecuzione 
+                ci sposteremmo solo nel caso in cui lo score degli avversari superare il nostro. Una variante più semplice sarebbe quella di 
+                posizionarsi direttamente sulle celle di delivery nel caso in cui fossero solo due.
+                
+                if(N delivery cells < 3 and can reach with both agents){
+                    i can block the delivery cells directly
+                    if(we are up in score and both agents paths are shorter than enemies to delivery cells and enemies are visible){
+                        each of our agents picks as target the closest delivery cells and blocks it
                     }
-                    
-                    Altrimenti se ci sono più delivery cells devo identificare i choke point in cui posso bloccare l'accesso a tutte le delivery cells.
-                    Se siamo sopra di punti e i nostri agenti hanno un path più corto di quello degli avversari allora posso bloccare i choke point.
-                    
-                    */
-                } else if(this.exchangeMaster || this.exchangeSlave){
-                    let tmpPlan = []
-                    // EXCHANGE STRATEGY
-                    // calculate path to get to two cells of distance for both agents and tell target
-                    // then makes one more step towards other agent
-                    // putdowns parcels carried
-                    // makes one step back and tells other agent the new target (the parcels on the ground)
-                    // other agent picks up parcels and ends the exchange intention for both agents
-                    // resume normal execution with now the slave with all the parcels and the master with none
-                    if(this.exchangeMaster){
+                }
+                
+                Altrimenti se ci sono più delivery cells devo identificare i choke point in cui posso bloccare l'accesso a tutte le delivery cells.
+                Se siamo sopra di punti e i nostri agenti hanno un path più corto di quello degli avversari allora posso bloccare i choke point.
+                
+                */
+            } else if(this.exchangeMaster || this.exchangeSlave){
+                let tmpPlan = []
+
+                if(this.exchangeMaster){
+                    if(this.endExchangeTarget.intention === 'error'){
                         this.target = this.calculateExchangeCommonTarget()
-                        let pathLenToOtherAgent = PathLengthBFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
-                        if(pathLenToOtherAgent < 3){
-                            if(pathLenToOtherAgent === 2 && this.agentCarriesParcels()){
-                                tmpPlan = BFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].slice(0, 1)
-                            } else if (pathLenToOtherAgent === 1 && this.agentCarriesParcels()){
-                                tmpPlan = ['putdown']
-                            } else if(pathLenToOtherAgent === 1 && !this.agentCarriesParcels()){
-                                tmpPlan = this.moveInNeighborFreeCell()
-                            } else if(pathLenToOtherAgent === 2 && !this.agentCarriesParcels()){
-                                let target = this.translatePlanIntoTarget(BFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].slice(0, 1))
-                                this.comm.say(JSON.stringify({belief: 'ENDEXCHANGETARGET', target: target}))
-                                this.endExchangeTarget = new Target(-1, -1, 'error', 0)
-                            }
-                            if(tmpPlan[0] === 'error'){
-                                this.exchangeMaster = false
-                                this.endExchangeTarget = new Target(-1, -1, 'error', 0)
-                                this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
-                            } else {
-                                this.target = this.translatePlanIntoTarget(tmpPlan)
-                                this.plan = tmpPlan
-                            }
+                        if(this.target.intention === 'error'){
+                            this.plan = []
+                            this.exchangeMaster = false
+                            this.endExchangeTarget = new Target(-1, -1, 'error', 0)
+                            this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
                         } else {
-                            if(this.target.intention === 'error'){
-                                this.exchangeMaster = false
-                                this.endExchangeTarget = new Target(-1, -1, 'error', 0)
-                                this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
+                            let pathLenToOtherAgent = PathLengthBFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
+                            if(pathLenToOtherAgent < 3){
+                                if(pathLenToOtherAgent === 2 && this.agentCarriesParcels()){
+                                    tmpPlan = BFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].slice(0, 1)
+                                } else if (pathLenToOtherAgent === 1 && this.agentCarriesParcels()){
+                                    tmpPlan = ['putdown']
+                                } else if(pathLenToOtherAgent === 1 && !this.agentCarriesParcels()){
+                                    tmpPlan = this.moveInNeighborFreeCell()
+                                } else if(pathLenToOtherAgent === 2 && !this.agentCarriesParcels()){
+                                    let target = this.translatePlanIntoTarget(BFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].slice(0, 1))
+                                    this.endExchangeTarget = target
+                                    this.comm.say(JSON.stringify({belief: 'ENDEXCHANGETARGET', target: target}))
+                                }
+
+                                if(tmpPlan[0] === 'error'){
+                                    this.exchangeMaster = false
+                                    this.plan = []
+                                    this.target = new Target(this.agent.x, this.agent.y, 'change<3PATHERROR', 0)
+                                    this.endExchangeTarget = new Target(-1, -1, 'error', 0)
+                                    this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
+                                } else {
+                                    this.target = this.translatePlanIntoTarget(tmpPlan)
+                                    this.plan = tmpPlan
+                                }
                             } else {
                                 tmpPlan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
                                 if(tmpPlan[0] === 'error'){
+                                    this.plan = []
+                                    this.target = new Target(this.agent.x, this.agent.y, 'changeGETTOEXHCANGEPOINT', 0)
                                     this.exchangeMaster = false
                                     this.endExchangeTarget = new Target(-1, -1, 'error', 0)
                                     this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
@@ -115,137 +115,93 @@ class Planner{
                                 }
                             }
                         }
-                    }
-                    
-                    if(this.exchangeSlave){
-                        let utility = this.decideToIgnoreExchangeAndGetTargetAndPlan()
-                        // let utility = [false]
-                        if(utility[0]){
-                            this.target = utility[1]
-                            this.plan = utility[2]
-                        } else {
-                            if(this.endExchangeTarget.intention !== 'error'){
-                            this.target = this.endExchangeTarget
-                                if(this.agent.x === this.target.x && this.agent.y === this.target.y){
-                                    this.exchangeSlave = false
-                                    this.endExchangeTarget = new Target(-1, -1, 'error', 0)
-                                    this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
-                                }
-                                this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
-                            } else {
-                                tmpPlan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].concat('pickup')
-                                if(tmpPlan[0] === 'error'){
-                                    this.exchangeSlave = false
-                                    this.endExchangeTarget = new Target(-1, -1, 'error', 0)
-                                    this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
-                                } else {
-                                    this.target = this.translatePlanIntoTarget(tmpPlan)
-                                    this.plan = tmpPlan
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    let targets = []
-                    targets = this.getTargetsIdleMovement().concat(targets)
-                    if(this.agentKnowsParcels() || this.agentCarriesParcels()){
-                        targets = this.getTargetsWithUtility().concat(targets)
-                    }
-    
-                    let found = false
-                    for(const target of targets){
-                        if(!found){
-                            if(target.intention === 'delivery'){
-                                let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent, true)
-                                if(tmpPlan[0][0] != 'error'){
-                                    if(tmpPlan[1]){
-                                        found = true
-                                        this.plan = []
-                                        this.target = new Target(this.agent.x, this.agent.y, 'exchange')
-                                        this.exchangeMaster = true
-                                        this.comm.say(JSON.stringify({belief: 'EXCHANGE'}))
-                                    } else {
-                                        this.plan = tmpPlan[0]
-                                        this.target = target
-                                        found = true
-                                    }
-                                }
-                            } else {
-                                let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
-                                if(tmpPlan[0] != 'error'){
-                                    this.plan = tmpPlan[0]
-                                    this.target = target
-                                    found = true
-                                }
-                            }
-                        }
-                    }
-    
-                    if(!found){
-                        this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
-                        this.plan = []
                     } else {
-                        if(this.target.intention === 'pickup'){
-                            this.plan = this.plan.concat(['pickup'])
-                        } else if(this.target.intention === 'delivery'){
-                            this.plan = this.plan.concat(['putdown'])
+                        this.target = new Target(this.agent.x, this.agent.y, 'exchange', 0)
+                        this.plan = tmpPlan
+                    }
+                }
+                
+                if(this.exchangeSlave){
+                    if(this.endExchangeTarget.intention !== 'error'){
+                        tmpPlan = BFS(this.agent.x, this.agent.y, this.endExchangeTarget.x, this.endExchangeTarget.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].concat('pickup')
+                        if(this.agent.x === this.endExchangeTarget.x && this.agent.y === this.endExchangeTarget.y){
+                            this.exchangeSlave = false
+                            this.plan = []
+                            this.target = new Target(this.agent.x, this.agent.y, 'exchange', 0)
+                            this.endExchangeTarget = new Target(-1, -1, 'error', 0)
+                            this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
+                        } else if(tmpPlan[0] !== 'error'){
+                            this.target = this.translatePlanIntoTarget(tmpPlan)
+                            this.target.intention = 'exchange'
+                            this.plan = tmpPlan
                         }
+                    } else {
+                        tmpPlan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
+                        if(tmpPlan[0] === 'error'){
+                            this.exchangeSlave = false
+                            this.plan = []
+                            this.target = new Target(this.agent.x, this.agent.y, 'changeENDEXCHANGETARGETERROR', 0)
+                            this.endExchangeTarget = new Target(-1, -1, 'error', 0)
+                            this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
+                        } else {
+                            this.target = this.translatePlanIntoTarget(tmpPlan)
+                            this.plan = tmpPlan
+                        }
+                    }
+                }
+                
+
+            } else {
+                let targets = []
+
+                targets = this.getTargetsIdleMovement().concat(targets)
+                if(this.agentKnowsParcels() || this.agentCarriesParcels()){
+                    targets = this.getTargetsWithUtility().concat(targets)
+                }
+
+                let found = false
+
+                for(const target of targets){
+                    if(!found){
+                        let tmpPlan = []
+                        if(this.checkExchange(target)){
+                            if(this.exchangeUtility()){
+                                this.exchangeMaster = true
+                                this.plan = []
+                                this.target = new Target(this.agent.x, this.agent.y, 'exchange', 0)
+                                this.comm.say(JSON.stringify({belief: 'STARTEXCHANGE'}))
+                                found = true
+                            } else {
+                                this.target = new Target(this.otherAgent.x, this.otherAgent.y, 'exchange', 0)
+                                this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map , this.agents, this.agent, this.otherAgent, true)[0]
+                                found = true
+                            }
+                        } else {
+                            tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
+                            if(tmpPlan[0][0] !== 'error'){
+                                this.plan = tmpPlan[0]
+                                this.target = target
+                                found = true
+                            } else {
+                                // console.log(tmpPlan + ' ' + target.x + ' ' + target.y, target.intention, ' ' + this.agent.x + ' ' + this.agent.y + ' ' + this.otherAgent.x + ' ' + this.otherAgent.y)
+                            }
+                        }
+                    }
+                }
+
+                if(!found){
+                    this.target = new Target(this.agent.x, this.agent.y, 'changeTARGETNOTFOUND', 0)
+                    this.plan = []
+                } else {
+                    if(this.target.intention === 'pickup'){
+                        this.plan = this.plan.concat(['pickup'])
+                    } else if(this.target.intention === 'delivery'){
+                        this.plan = this.plan.concat(['putdown'])
                     }
                 }
             }
             await new Promise(res => setImmediate(res))
         }
-    }
-
-    decideToIgnoreExchangeAndGetTargetAndPlan(){
-        let scoreParcelsCarried = 0
-        for(const parcel of this.parcels.getMap()){
-            if(parcel[1].carriedBy === this.agent.id){
-                scoreParcelsCarried += parcel[1].reward
-            }
-        }
-        if(scoreParcelsCarried > 0 && this.target.intention === 'delivery'){
-            let distanceToDeliveryCell = PathLengthBFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent)
-            let distanceToOtherAgent = PathLengthBFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)
-            let scoreParcelsCarriedByOtherAgent = this.otherAgent.scoreParcelsCarried
-            /*
-            L'utility deve essere un misto di:
-            - distanza dalla cella di delivery
-            - distanza dall'altro agente
-            - score che sto portando io
-            - score che sta portando l'altro agente
-            */
-           return [true, new Target(this.agent.x, this.agent.y, 'stayStill', 0), []] // to change into real target and plan
-        } else {
-            return [false, new Target(-1, -1, 'error', 0), []]
-        }
-    }
-
-    async sendTargetToOtherAgent(){
-        let lastTarget = this.target
-        while(true){
-            if(this.target.intention !== lastTarget.intention || this.target.x !== lastTarget.x || this.target.y !== lastTarget.y){
-                this.comm.say(JSON.stringify({belief: 'TARGETUPDATE', target: this.target}))
-                lastTarget = this.target
-            }
-            await new Promise(res => setImmediate(res))
-        }
-    }
-
-    async sendScoreParcelsCarriedToOtherAgent(){
-        let lastScore = 0
-        while(true){
-            let newScore = this.getScoreParcelsCarried()
-            if(newScore !== lastScore){
-                lastScore = newScore
-                this.comm.say(JSON.stringify({belief: 'CARRYUPDATE', score: lastScore}))
-            }
-            await new Promise(res => setImmediate(res))
-        }
-    }
-
-    checkAllInitialized(){
-        return true
     }
 
     moveInNeighborFreeCell(){
@@ -290,7 +246,7 @@ class Planner{
             if(tmpPlan[0].length % 2 === 0){
                 let halfPlanPlus2 = tmpPlan[0].slice(0, ((tmpPlan[0].length - 2) / 2) + 2)
                 if(sendLimit){
-                    this.comm.say(JSON.stringify({belief: 'TARGET', target: this.translatePlanIntoTarget(halfPlanPlus2)}))
+                    this.comm.say(JSON.stringify({belief: 'EXCHANGETARGET', target: this.translatePlanIntoTarget(halfPlanPlus2)}))
                     sendLimit = false
                 }
                 let halfPlan = tmpPlan[0].slice(0, (tmpPlan[0].length - 2) / 2)
@@ -298,7 +254,7 @@ class Planner{
             } else {
                 let halfPlanPlus2 = tmpPlan[0].slice(0, Math.floor((tmpPlan[0].length - 2) / 2) + 3)
                 if(sendLimit){
-                    this.comm.say(JSON.stringify({belief: 'TARGET', target: this.translatePlanIntoTarget(halfPlanPlus2)}))
+                    this.comm.say(JSON.stringify({belief: 'EXCHANGETARGET', target: this.translatePlanIntoTarget(halfPlanPlus2)}))
                     sendLimit = false
                 }
                 let halfPlan = tmpPlan[0].slice(0, Math.floor((tmpPlan[0].length - 2) / 2) + 1)
@@ -324,6 +280,29 @@ class Planner{
         return new Target(x, y, 'exchange', 0)
     }
 
+    checkExchange(target){
+        let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent, true)
+        return target.intention === 'delivery' && tmpPlan[0][0] !== 'error' && tmpPlan[1]
+    }
+    exchangeUtility(){
+        // score delle parcelle dell'agente a cui viene richiesto lo scambio
+        let scoreParcelsCarriedOtherAgent = this.otherAgent.scoreParcelsCarried
+
+        if(scoreParcelsCarriedOtherAgent === 0){
+            return true
+        } else {
+            // score delle parcelle tenute dal richiedente
+            let scoreParcelsCarriedThisAgent = this.getScoreParcelsCarried()
+            // distanza tra il richiedente e l'agente che riceve la richiesta di scambio
+            let distanceToTargetThisAgent = PathLengthBFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
+            // distanza tra l'altro agente e il suo target (con intention che è per forza delivery)
+            let distanceToTargetOtherAgent = PathLengthBFS(this.otherAgent.x, this.otherAgent.y, this.otherAgent.target.x, this.otherAgent.target.y, this.map, this.agents, this.otherAgent, this.agent, false)[0]
+
+            let scoreThisAgent = Math.pow(scoreParcelsCarriedThisAgent, 1) / Math.pow(distanceToTargetThisAgent, 2)
+            let scoreOtherAgent = Math.pow(scoreParcelsCarriedOtherAgent, 1) / Math.pow(distanceToTargetOtherAgent, 2)
+            return scoreThisAgent > scoreOtherAgent
+        }
+    }
     getScoreParcelsCarried(){
         let score = 0
         for(const parcel of this.parcels.getMap()){
@@ -333,7 +312,36 @@ class Planner{
         }
         return score
     }
-    
+    async sendTargetToOtherAgent(){
+        let lastTarget = this.target
+        while(true){
+            if(this.target.intention !== lastTarget.intention || this.target.x !== lastTarget.x || this.target.y !== lastTarget.y){
+                this.comm.say(JSON.stringify({belief: 'TARGETUPDATE', target: this.target}))
+                lastTarget = this.target
+            }
+            await new Promise(res => setImmediate(res))
+        }
+    }
+    async sendScoreParcelsCarriedToOtherAgent(){
+        let lastScore = 0
+        while(true){
+            let newScore = this.getScoreParcelsCarried()
+            if(newScore !== lastScore){
+                lastScore = newScore
+                this.comm.say(JSON.stringify({belief: 'CARRYUPDATE', score: lastScore}))
+            }
+            await new Promise(res => setImmediate(res))
+        }
+    }
+    getScoreParcelsCarried(){
+        let score = 0
+        for(const parcel of this.parcels.getMap()){
+            if(parcel[1].carriedBy === this.agent.id){
+                score += parcel[1].reward
+            }
+        }
+        return score
+    }
     getTargetsIdleMovement(){
         let targets = []
         for(let row = 0; row < this.map.getNRows(); row++){
