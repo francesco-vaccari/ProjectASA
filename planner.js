@@ -7,7 +7,7 @@ setInterval(() => {
 
 
 class Target{
-    constructor(x, y, intention='changeERRORINITIALIZATIONTARGET', score=0){
+    constructor(x, y, intention='error', score=0){
         this.x = x
         this.y = y
         this.intention = intention
@@ -30,7 +30,7 @@ class Planner{
         this.agents = agents
         this.comm = comm
         this.plan = ['error']
-        this.target = new Target(this.agent.x, this.agent.y, 'changeERRORINITCONSTRPLANNER', 0)
+        this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
         this.startPlanning()
         this.sendTargetToOtherAgent()
         this.sendScoreParcelsCarriedToOtherAgent()
@@ -38,7 +38,7 @@ class Planner{
             setInterval(() => {
                 console.log('['+this.agent.name+']\tTARGET', this.target.x, this.target.y, this.target.intention)
                 // console.log('PLAN', this.plan)
-            }, 100)
+            }, 200)
         }
     }
     async startPlanning(){
@@ -94,7 +94,7 @@ class Planner{
                                 if(tmpPlan[0] === 'error'){
                                     this.exchangeMaster = false
                                     this.plan = []
-                                    this.target = new Target(this.agent.x, this.agent.y, 'change<3PATHERROR', 0)
+                                    this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
                                     this.endExchangeTarget = new Target(-1, -1, 'error', 0)
                                     this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
                                 } else {
@@ -105,7 +105,7 @@ class Planner{
                                 tmpPlan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
                                 if(tmpPlan[0] === 'error'){
                                     this.plan = []
-                                    this.target = new Target(this.agent.x, this.agent.y, 'changeGETTOEXHCANGEPOINT', 0)
+                                    this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
                                     this.exchangeMaster = false
                                     this.endExchangeTarget = new Target(-1, -1, 'error', 0)
                                     this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
@@ -140,7 +140,7 @@ class Planner{
                         if(tmpPlan[0] === 'error'){
                             this.exchangeSlave = false
                             this.plan = []
-                            this.target = new Target(this.agent.x, this.agent.y, 'changeENDEXCHANGETARGETERROR', 0)
+                            this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
                             this.endExchangeTarget = new Target(-1, -1, 'error', 0)
                             this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
                         } else {
@@ -183,14 +183,16 @@ class Planner{
                                 this.target = target
                                 found = true
                             } else {
+                                // let variable = PathLengthBFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
                                 // console.log(tmpPlan + ' ' + target.x + ' ' + target.y, target.intention, ' ' + this.agent.x + ' ' + this.agent.y + ' ' + this.otherAgent.x + ' ' + this.otherAgent.y)
+                                // console.log(variable)
                             }
                         }
                     }
                 }
 
                 if(!found){
-                    this.target = new Target(this.agent.x, this.agent.y, 'changeTARGETNOTFOUND', 0)
+                    this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
                     this.plan = []
                 } else {
                     if(this.target.intention === 'pickup'){

@@ -38,6 +38,8 @@ class You{
                 this.print()
             }
         })
+        this.makeSureYouIsSet()
+        
     }
     createJSON(){
         return JSON.stringify({
@@ -48,6 +50,15 @@ class You{
             y: this.y,
             score: this.score
         })
+    }
+    async makeSureYouIsSet(){
+        while(this.id === undefined){
+            this.client.move('up')
+            this.client.move('down')
+            this.client.move('left')
+            this.client.move('right')
+            await new Promise(res => setImmediate(res))
+        }
     }
     print(){
         console.log('[YOU]\t', this.id, this.name, this.x, this.y, this.score)
@@ -276,13 +287,13 @@ class GameMap{
 }
 
 class Agent{
-    constructor(id, name, x, y, score){
+    constructor(id, name, x, y, score, visible=true){
         this.id = id
         this.name = name
         this.x = x
         this.y = y
         this.score = score
-        this.visible = true
+        this.visible = visible
     }
     print(){
         console.log('[AGENT]\t', this.id, this.name, this.x, this.y, this.score, this.visible)
@@ -502,23 +513,29 @@ class Agents{
     joinMaps(){
         this.agents.clear()
         if(this.agent.id !== undefined){
-            this.agents.set(this.agent.id, new Agent(this.agent.id, this.agent.name, this.agent.x, this.agent.y, this.agent.score))
+            this.agents.set(this.agent.id, new Agent(this.agent.id, this.agent.name, this.agent.x, this.agent.y, this.agent.score, true))
         }
         if(this.otherAgent.id !== undefined){
-            this.agents.set(this.otherAgent.id, new Agent(this.otherAgent.id, this.otherAgent.name, this.otherAgent.x, this.otherAgent.y, this.otherAgent.score))
+            this.agents.set(this.otherAgent.id, new Agent(this.otherAgent.id, this.otherAgent.name, this.otherAgent.x, this.otherAgent.y, this.otherAgent.score, true))
         }
+
         for(const agent of this.mapOfThisAgent){
-            this.agents.set(agent[0], agent[1])
+            if(agent[0] !== this.agent.id && agent[0] !== this.otherAgent.id){
+                this.agents.set(agent[0], agent[1])
+            }
         }
         for(const agent of this.mapOfOtherAgent){
-            if(!this.agents.has(agent[0])){
-                this.agents.set(agent[0], agent[1])
-            } else {
-                if(!this.agents.get(agent[0].visible) && agent[1].visible){
+            if(agent[0] !== this.agent.id && agent[0] !== this.otherAgent.id){
+                if(!this.agents.has(agent[0])){
                     this.agents.set(agent[0], agent[1])
+                } else {
+                    if(!this.agents.get(agent[0]).visible && agent[1].visible){
+                        this.agents.set(agent[0], agent[1])
+                    }
                 }
             }
         }
+
         if(this.verbose){
             this.print()
         }
@@ -526,7 +543,7 @@ class Agents{
     print(){
         console.log('\n///////[AGENT LIST UNIFIED]///////')
         for (const agent of this.agents){
-            console.log('[AGENT]\t', agent[0], agent[1].name, agent[1].x, agent[1].y, agent[1].score)
+            console.log('[AGENT]\t', agent[0], agent[1].name, agent[1].x, agent[1].y, agent[1].score, agent[1].visible)
         }
         console.log('////////////////////////////\n')
     }

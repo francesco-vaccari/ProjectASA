@@ -16,10 +16,10 @@ const thisAgentParcels = new ThisAgentParcels(client, parcels, conf, agent, comm
 const otherAgentParcels = new OtherAgentParcels(parcels, false)
 const thisAgentAgents = new ThisAgentAgents(client, agents, comm, false)
 const otherAgentAgents = new OtherAgentAgents(agents, false)
-const planner = new Planner(client, map, agent, otherAgent, parcels, agents, comm, false)
+const planner = new Planner(client, map, agent, otherAgent, parcels, agents, comm, true)
 const commHandler = new CommunicationHandler(comm, agent, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, planner, false)
 
-var plan = []
+var plan = ['pickup']
 var action = undefined
 var ready = true
 
