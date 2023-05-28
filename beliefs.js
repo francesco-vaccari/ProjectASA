@@ -380,6 +380,11 @@ class OtherAgent{
         this.score = undefined
         this.target = new Target(undefined, undefined)
         this.scoreParcelsCarried = 0
+        if(this.verbose){
+            setInterval(() => {
+                this.print()
+            }, 200)
+        }
     }
     set(json){
         this.id = json.id
@@ -387,11 +392,6 @@ class OtherAgent{
         this.x = json.x
         this.y = json.y
         this.score = json.score
-        if(this.verbose){
-            setInterval(() => {
-                this.print()
-            }, 1000)
-        }
     }
     print(){
         console.log('[OTHERAGENT]\t', this.id, this.name, this.x, this.y, this.score, '\tCarried: ', this.scoreParcelsCarried, '\tTarget: ', this.target.x, this.target.y, this.target.intention)

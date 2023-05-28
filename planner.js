@@ -16,7 +16,7 @@ class Target{
 }
 
 class Planner{
-    constructor(client, map, agent, otherAgent, parcels, agents, comm, verbose=false){
+    constructor(client, map, agent, otherAgent, parcels, agents, comm, enemies, verbose=false){
         this.client = client
         this.verbose = verbose
         this.blockStrategy = false
@@ -28,6 +28,7 @@ class Planner{
         this.otherAgent = otherAgent
         this.parcels = parcels
         this.agents = agents
+        this.enemies = enemies
         this.comm = comm
         this.plan = ['error']
         this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
@@ -171,8 +172,6 @@ class Planner{
                                     found = true
                                 }
                             } else {
-                                // aggiungere il controllo che il target non sia il this.otherAgent.target
-                                // e controllare che funzioni il controllo
                                 tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
                                 if(tmpPlan[0][0] !== 'error'){
                                     this.plan = tmpPlan[0]
@@ -184,7 +183,7 @@ class Planner{
                     }
     
                     if(!found){
-                        this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
+                        this.target = new Target(this.agent.x, this.agent.y, 'targetNotFound', 0)
                         this.plan = []
                     } else {
                         if(this.target.intention === 'pickup'){
@@ -203,6 +202,9 @@ class Planner{
         // check if blocking strategy is possible and calculate targets for both agents if it is
         // return [true, new Target(0, 0, 'block', 0), new Target(0, 0, 'block', 0)]
 
+
+        // this.enemies, this.agent, this.otherAgent, this.map
+
         
         return [false, new Target(-1, -1, 'error', 0), new Target(-1, -1, 'error', 0)]
     }
@@ -213,7 +215,7 @@ class Planner{
 
         return false
     }
-
+    
     moveInNeighborFreeCell(){
         let xs = [0, -1, 0, 1]
         let ys = [1, 0, -1, 0]
@@ -234,7 +236,6 @@ class Planner{
         }
         return ['error']
     }
-
     translateDirection(x, y){
         if(x === 0){
             if(y === 1){
@@ -247,7 +248,6 @@ class Planner{
         }
         return 'left'
     }
-
     calculateExchangeCommonTarget(){
         let tmpPlan = BFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)
         if(tmpPlan[0][0] === 'error'){
@@ -272,7 +272,6 @@ class Planner{
             }
         }
     }
-
     translatePlanIntoTarget(plan){
         let x = this.agent.x
         let y = this.agent.y
@@ -289,7 +288,6 @@ class Planner{
         }
         return new Target(x, y, 'exchange', 0)
     }
-
     checkExchange(target){
         let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent, true)
         return target.intention === 'delivery' && tmpPlan[0][0] !== 'error' && tmpPlan[1]
@@ -386,6 +384,9 @@ class Planner{
         return targets
     }
     getNormalCellUtility(x, y){
+        if(x === this.otherAgent.target.x && y === this.otherAgent.target.y){
+            return 0
+        }
         let minDistanceToBorder = 10000000
         let borderx = undefined
         let bordery = undefined
