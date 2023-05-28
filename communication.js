@@ -130,6 +130,14 @@ class CommunicationHandler{
                     this.planner.endExchangeTarget.x = -1
                     this.planner.endExchangeTarget.y = -1
                     this.planner.endExchangeTarget.intention = 'error'
+                } else if(json.belief === 'BLOCKSTRATEGY'){
+                    this.planner.blockStrategy = true
+                    this.planner.target = json.target
+                } else if(json.belief === 'ENDBLOCKSTRATEGY'){
+                    this.planner.blockStrategy = false
+                    this.planner.target.x = -1
+                    this.planner.target.y = -1
+                    this.planner.target.intention = 'error'
                 }
 
                 if(this.verbose){

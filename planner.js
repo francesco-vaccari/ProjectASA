@@ -44,27 +44,12 @@ class Planner{
     async startPlanning(){
         while(true){
             if(this.blockStrategy){
-                // implement blocking strategy
-                /*
-                
-                Un possibile caso particolare è quello di bloccare i path degli agenti nemici verso le caselle di delivery, ma questo funziona 
-                solo se i due agenti nemici sono in celle i quali path verso celle di delivery passano tutti nelle posizioni in cui gli agenti 
-                si posizionerebbero per bloccare i path. Ovviamente questa strategia funziona solo in caso di vantaggio. Un'altra cosa è che 
-                dovremmo sapere con esattezza le posizioni di entrambi gli agenti nemici prima di poter eseguire questa strategia. Dopo l'esecuzione 
-                ci sposteremmo solo nel caso in cui lo score degli avversari superare il nostro. Una variante più semplice sarebbe quella di 
-                posizionarsi direttamente sulle celle di delivery nel caso in cui fossero solo due.
-                
-                if(N delivery cells < 3 and can reach with both agents){
-                    i can block the delivery cells directly
-                    if(we are up in score and both agents paths are shorter than enemies to delivery cells and enemies are visible){
-                        each of our agents picks as target the closest delivery cells and blocks it
-                    }
+                if(this.checkBlockStrategyStillPossible()){
+                    this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
+                } else {
+                    this.blockStrategy = false
+                    this.comm.say(JSON.stringify({belief: 'ENDBLOCKSTRATEGY'}))
                 }
-                
-                Altrimenti se ci sono più delivery cells devo identificare i choke point in cui posso bloccare l'accesso a tutte le delivery cells.
-                Se siamo sopra di punti e i nostri agenti hanno un path più corto di quello degli avversari allora posso bloccare i choke point.
-                
-                */
             } else if(this.exchangeMaster || this.exchangeSlave){
                 let tmpPlan = []
 
@@ -152,58 +137,79 @@ class Planner{
                 
 
             } else {
-                let targets = []
+                let targets = this.checkBlockStrategy()
+                if(targets[0]){
+                    let targetThisAgent = targets[1]
+                    let targetOtherAgent = targets[2]
 
-                targets = this.getTargetsIdleMovement().concat(targets)
-                if(this.agentKnowsParcels() || this.agentCarriesParcels()){
-                    targets = this.getTargetsWithUtility().concat(targets)
-                }
-
-                let found = false
-
-                for(const target of targets){
-                    if(!found){
-                        let tmpPlan = []
-                        if(this.checkExchange(target)){
-                            if(this.exchangeUtility()){
-                                this.exchangeMaster = true
-                                this.plan = []
-                                this.target = new Target(this.agent.x, this.agent.y, 'exchange', 0)
-                                this.comm.say(JSON.stringify({belief: 'STARTEXCHANGE'}))
-                                found = true
+                    this.blockStrategy = true
+                    this.target = targetThisAgent
+                    this.comm.say(JSON.stringify({belief: 'BLOCKSTRATEGY', target: targetOtherAgent}))
+                } else {
+                    let targets = []
+    
+                    targets = this.getTargetsIdleMovement().concat(targets)
+                    if(this.agentKnowsParcels() || this.agentCarriesParcels()){
+                        targets = this.getTargetsWithUtility().concat(targets)
+                    }
+    
+                    let found = false
+    
+                    for(const target of targets){
+                        if(!found){
+                            let tmpPlan = []
+                            if(this.checkExchange(target)){
+                                if(this.exchangeUtility()){
+                                    this.exchangeMaster = true
+                                    this.plan = []
+                                    this.target = new Target(this.agent.x, this.agent.y, 'exchange', 0)
+                                    this.comm.say(JSON.stringify({belief: 'STARTEXCHANGE'}))
+                                    found = true
+                                } else {
+                                    this.target = new Target(this.otherAgent.x, this.otherAgent.y, 'exchange', 0)
+                                    this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map , this.agents, this.agent, this.otherAgent, true)[0]
+                                    found = true
+                                }
                             } else {
-                                this.target = new Target(this.otherAgent.x, this.otherAgent.y, 'exchange', 0)
-                                this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map , this.agents, this.agent, this.otherAgent, true)[0]
-                                found = true
-                            }
-                        } else {
-                            tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
-                            if(tmpPlan[0][0] !== 'error'){
-                                this.plan = tmpPlan[0]
-                                this.target = target
-                                found = true
-                            } else {
-                                // let variable = PathLengthBFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
-                                // console.log(tmpPlan + ' ' + target.x + ' ' + target.y, target.intention, ' ' + this.agent.x + ' ' + this.agent.y + ' ' + this.otherAgent.x + ' ' + this.otherAgent.y)
-                                // console.log(variable)
+                                tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
+                                if(tmpPlan[0][0] !== 'error'){
+                                    this.plan = tmpPlan[0]
+                                    this.target = target
+                                    found = true
+                                }
                             }
                         }
                     }
-                }
-
-                if(!found){
-                    this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
-                    this.plan = []
-                } else {
-                    if(this.target.intention === 'pickup'){
-                        this.plan = this.plan.concat(['pickup'])
-                    } else if(this.target.intention === 'delivery'){
-                        this.plan = this.plan.concat(['putdown'])
+    
+                    if(!found){
+                        this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
+                        this.plan = []
+                    } else {
+                        if(this.target.intention === 'pickup'){
+                            this.plan = this.plan.concat(['pickup'])
+                        } else if(this.target.intention === 'delivery'){
+                            this.plan = this.plan.concat(['putdown'])
+                        }
                     }
                 }
             }
             await new Promise(res => setImmediate(res))
         }
+    }
+
+    checkBlockStrategy(){
+        // check if blocking strategy is possible and calculate targets for both agents if it is
+        // return [true, new Target(0, 0, 'block', 0), new Target(0, 0, 'block', 0)]
+
+        
+        return [false, new Target(-1, -1, 'error', 0), new Target(-1, -1, 'error', 0)]
+    }
+
+    checkBlockStrategyStillPossible(){
+        // if enemies have score higher than us then we must exit blockStrategy
+        // return true
+
+        return false
     }
 
     moveInNeighborFreeCell(){
