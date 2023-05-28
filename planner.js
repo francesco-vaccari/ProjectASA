@@ -171,6 +171,8 @@ class Planner{
                                     found = true
                                 }
                             } else {
+                                // aggiungere il controllo che il target non sia il this.otherAgent.target
+                                // e controllare che funzioni il controllo
                                 tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
                                 if(tmpPlan[0][0] !== 'error'){
                                     this.plan = tmpPlan[0]

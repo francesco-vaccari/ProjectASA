@@ -1,6 +1,6 @@
 import { DeliverooApi, timer } from "@unitn-asa/deliveroo-js-client"
 import { default as config } from "./config1.js"
-import { Conf, You, ThisAgentParcels, OtherAgentParcels, GameMap, OtherAgent, ThisAgentAgents, OtherAgentAgents, Parcels, Agents } from "./beliefs.js"
+import { Conf, You, ThisAgentParcels, OtherAgentParcels, GameMap, OtherAgent, ThisAgentAgents, OtherAgentAgents, Parcels, Agents, Enemies } from "./beliefs.js"
 import { Planner } from "./planner.js"
 import { Communication, CommunicationHandler } from "./communication.js"
 
@@ -16,10 +16,11 @@ const thisAgentParcels = new ThisAgentParcels(client, parcels, conf, agent, comm
 const otherAgentParcels = new OtherAgentParcels(parcels, false)
 const thisAgentAgents = new ThisAgentAgents(client, agents, comm, false)
 const otherAgentAgents = new OtherAgentAgents(agents, false)
-const planner = new Planner(client, map, agent, otherAgent, parcels, agents, comm, true)
+const planner = new Planner(client, map, agent, otherAgent, parcels, agents, comm, false)
 const commHandler = new CommunicationHandler(comm, agent, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, planner, false)
+const enemies = new Enemies(client, agent, otherAgent, agents, false)
 
-var plan = ['pickup']
+var plan = []
 var action = undefined
 var ready = true
 

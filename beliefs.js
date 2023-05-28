@@ -311,7 +311,9 @@ class ThisAgentAgents{
         this.client.onAgentsSensing(data => {
             this.setAllAgentsNotVisible()
             for (const agent of data){
-                this.add(new Agent(agent.id, agent.name, Math.round(agent.x), Math.round(agent.y), agent.score))
+                if(agent.name !== 'god'){
+                    this.add(new Agent(agent.id, agent.name, Math.round(agent.x), Math.round(agent.y), agent.score))
+                }
             }
             this.comm.say(this.createJSON())
             if (this.verbose){
@@ -386,11 +388,13 @@ class OtherAgent{
         this.y = json.y
         this.score = json.score
         if(this.verbose){
-            this.print()
+            setInterval(() => {
+                this.print()
+            }, 1000)
         }
     }
     print(){
-        console.log('[OTHERAGENT]\t', this.name, this.x, this.y, this.score, '\tCarried: ', this.scoreParcelsCarried, '\tTarget: ', this.target.x, this.target.y, this.target.intention)
+        console.log('[OTHERAGENT]\t', this.id, this.name, this.x, this.y, this.score, '\tCarried: ', this.scoreParcelsCarried, '\tTarget: ', this.target.x, this.target.y, this.target.intention)
     }
 }
 
@@ -552,4 +556,69 @@ class Agents{
     }
 }
 
-export { Conf, You, ThisAgentParcels, OtherAgentParcels, GameMap, OtherAgent, ThisAgentAgents, OtherAgentAgents, Parcels, Agents }
+class Enemies{
+    constructor(client, thisAgent, otherAgent, agents, verbose=false){
+        this.client = client
+        this.verbose = verbose
+        this.thisAgent = thisAgent
+        this.otherAgent = otherAgent
+        this.agents = agents
+        this.initialized = false
+
+        this.enemyOne = new Agent(undefined, undefined, undefined, undefined, undefined, false)
+        this.enemyTwo = new Agent(undefined, undefined, undefined, undefined, undefined, false)
+
+        this.initializeEnemies()
+        this.updateEnemiesVisibility()
+        
+        if(this.verbose){
+            setInterval(() => {
+                this.print()
+            }, 200)
+        }
+    }
+    async initializeEnemies(){
+        while(!this.initialized){
+            if(this.thisAgent.id !== undefined && this.otherAgent.id !== undefined){
+                for(const agent of this.agents.getMap()){
+                    if(agent[0] !== this.thisAgent.id && agent[0] !== this.otherAgent.id){
+                        if(this.enemyOne.id === undefined){
+                            this.enemyOne = agent[1]
+                        } else if(this.enemyTwo.id === undefined && agent[0] !== this.enemyOne.id){
+                            this.enemyTwo = agent[1]
+                            this.initialized = true
+                        }
+                    }
+                }
+            }
+            await new Promise(res => setImmediate(res))
+        }
+    }
+    async updateEnemiesVisibility(){
+        while(true){
+            if(this.initialized){
+                let enemyOneVisible = false
+                let enemyTwoVisible = false
+                for(const agent of this.agents.getMap()){
+                    if(agent[0] === this.enemyOne.id){
+                        enemyOneVisible = agent[1].visible
+                    }
+                    if(agent[0] === this.enemyTwo.id){
+                        enemyTwoVisible = agent[1].visible
+                    }
+                }
+                this.enemyOne.visible = enemyOneVisible
+                this.enemyTwo.visible = enemyTwoVisible
+            }
+            await new Promise(res => setImmediate(res))
+        }
+    }
+    print(){
+        console.log('\n///////[ENEMY LIST]///////')
+        console.log('[ENEMY]\t', this.enemyOne.id, this.enemyOne.name, this.enemyOne.x, this.enemyOne.y, this.enemyOne.score, this.enemyOne.visible)
+        console.log('[ENEMY]\t', this.enemyTwo.id, this.enemyTwo.name, this.enemyTwo.x, this.enemyTwo.y, this.enemyTwo.score, this.enemyTwo.visible)
+        console.log('////////////////////////////\n')
+    }
+}
+
+export { Conf, You, ThisAgentParcels, OtherAgentParcels, GameMap, OtherAgent, ThisAgentAgents, OtherAgentAgents, Parcels, Agents, Enemies }
