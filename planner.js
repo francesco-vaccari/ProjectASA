@@ -16,9 +16,10 @@ class Target{
 }
 
 class Planner{
-    constructor(client, map, agent, otherAgent, parcels, agents, comm, enemies, verbose=false){
+    constructor(client, map, agent, otherAgent, parcels, agents, comm, enemies, who, verbose=false){
         this.client = client
         this.verbose = verbose
+        this.who = who
         this.blockStrategy = false
         this.exchangeMaster = false
         this.exchangeSlave = false
@@ -49,6 +50,7 @@ class Planner{
                     this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
                 } else {
                     this.blockStrategy = false
+                    this.target = new Target(-1, -1, 'error', 0)
                     this.comm.say(JSON.stringify({belief: 'ENDBLOCKSTRATEGY'}))
                 }
             } else if(this.exchangeMaster || this.exchangeSlave){
@@ -138,10 +140,13 @@ class Planner{
                 
 
             } else {
-                let targets = this.checkBlockStrategy()
-                if(targets[0]){
-                    let targetThisAgent = targets[1]
-                    let targetOtherAgent = targets[2]
+                let block = [false]
+                if(this.who === 'one'){
+                    block = this.checkBlockStrategy()
+                }
+                if(block[0]){
+                    let targetThisAgent = block[1]
+                    let targetOtherAgent = block[2]
 
                     this.blockStrategy = true
                     this.target = targetThisAgent
@@ -199,23 +204,85 @@ class Planner{
     }
 
     checkBlockStrategy(){
-        // check if blocking strategy is possible and calculate targets for both agents if it is
-        // return [true, new Target(0, 0, 'block', 0), new Target(0, 0, 'block', 0)]
-
-
-        // this.enemies, this.agent, this.otherAgent, this.map
-
-        
+        if(this.enemies.enemyOne.id !== undefined && this.enemies.enemyTwo.id !== undefined){
+            if(this.enemies.enemyOne.visible && this.enemies.enemyTwo.visible){
+                if((this.enemies.enemyOne.score + this.enemies.enemyTwo.score) < (this.agent.score + this.otherAgent.score)){
+                    return this.mapHasOnlyTwoDeliveryCells()
+                }
+            }
+        }
         return [false, new Target(-1, -1, 'error', 0), new Target(-1, -1, 'error', 0)]
     }
 
     checkBlockStrategyStillPossible(){
-        // if enemies have score higher than us then we must exit blockStrategy
-        // return true
-
-        return false
+        return (this.enemies.enemyOne.score + this.enemies.enemyTwo.score) < (this.agent.score + this.otherAgent.score)
     }
-    
+
+    mapHasOnlyTwoDeliveryCells(){
+        let n = 0
+        let targetOne = new Target(-1, -1, 'error', 0)
+        let targetTwo = new Target(-1, -1, 'error', 0)
+        for(let i = 0; i < this.map.getNRows(); i++){
+            for(let j = 0; j < this.map.getNCols(); j++){
+                if(this.map.getMatrix()[i][j].type === 2){
+                    n += 1
+                    if(targetOne.intention === 'error'){
+                        targetOne = new Target(i, j, 'block', 0)
+                    } else if(targetTwo.intention === 'error'){
+                        targetTwo = new Target(i, j, 'block', 0)
+                    }
+                }
+            }
+        }
+
+        if(n === 1){
+            let pathLengthToDeliveryThisAgent = PathLengthBFS(this.agent.x, this.agent.y, targetOne.x, targetOne.y, this.map, this.agents, this.agent, this.otherAgent)
+            let pathLengthToDeliveryOtherAgent = PathLengthBFS(this.otherAgent.x, this.otherAgent.y, targetOne.x, targetOne.y, this.map, this.agents, this.agent, this.otherAgent)
+
+            let pathLengthToDeliveryEnemyOne = PathLengthBFS(this.enemies.enemyOne.x, this.enemies.enemyOne.y, targetOne.x, targetOne.y, this.map, this.agents)
+            let pathLengthToDeliveryEnemyTwo = PathLengthBFS(this.enemies.enemyTwo.x, this.enemies.enemyTwo.y, targetOne.x, targetOne.y, this.map, this.agents)
+
+            if(pathLengthToDeliveryThisAgent <= pathLengthToDeliveryOtherAgent){
+                if(pathLengthToDeliveryThisAgent < pathLengthToDeliveryEnemyOne && pathLengthToDeliveryThisAgent < pathLengthToDeliveryEnemyTwo){
+                    return [true, targetOne, new Target(this.otherAgent.x, this.otherAgent.y, 'block', 0)]
+                } else {
+                    return [false, new Target(-1, -1, 'error', 0), new Target(-1, -1, 'error', 0)]
+                }
+            } else {
+                if(pathLengthToDeliveryOtherAgent < pathLengthToDeliveryEnemyOne && pathLengthToDeliveryOtherAgent < pathLengthToDeliveryEnemyTwo){
+                    return [true, new Target(this.agent.x, this.agent.x, 'block', 0), targetOne]
+                } else {
+                    return [false, new Target(-1, -1, 'error', 0), new Target(-1, -1, 'error', 0)]
+                }
+            }
+
+        } else if(n === 2){
+            let thisAgentToTargetOne = PathLengthBFS(this.agent.x, this.agent.y, targetOne.x, targetOne.y, this.map, this.agents, this.agent, this.otherAgent)[0]
+            let thisAgentToTargetTwo = PathLengthBFS(this.agent.x, this.agent.y, targetTwo.x, targetTwo.y, this.map, this.agents, this.agent, this.otherAgent)[0]
+            let otherAgentToTargetOne = PathLengthBFS(this.otherAgent.x, this.otherAgent.y, targetOne.x, targetOne.y, this.map, this.agents, this.agent, this.otherAgent)[0]
+            let otherAgentToTargetTwo = PathLengthBFS(this.otherAgent.x, this.otherAgent.y, targetTwo.x, targetTwo.y, this.map, this.agents, this.agent, this.otherAgent)[0]
+            let enemyOneToTargetOne = PathLengthBFS(this.enemies.enemyOne.x, this.enemies.enemyOne.y, targetOne.x, targetOne.y, this.map, this.agents)[0]
+            let enemyOneToTargetTwo = PathLengthBFS(this.enemies.enemyOne.x, this.enemies.enemyOne.y, targetTwo.x, targetTwo.y, this.map, this.agents)[0]
+            let enemyTwoToTargetOne = PathLengthBFS(this.enemies.enemyTwo.x, this.enemies.enemyTwo.y, targetOne.x, targetOne.y, this.map, this.agents)[0]
+            let enemyTwoToTargetTwo = PathLengthBFS(this.enemies.enemyTwo.x, this.enemies.enemyTwo.y, targetTwo.x, targetTwo.y, this.map, this.agents)[0]
+
+            if(thisAgentToTargetOne < enemyOneToTargetOne && thisAgentToTargetOne < enemyTwoToTargetOne){
+                if(otherAgentToTargetTwo < enemyOneToTargetTwo && otherAgentToTargetTwo < enemyTwoToTargetTwo){
+                    return [true, targetOne, targetTwo]
+                }
+            }
+            if(thisAgentToTargetTwo < enemyOneToTargetTwo && thisAgentToTargetTwo < enemyTwoToTargetTwo){
+                if(otherAgentToTargetOne < enemyOneToTargetOne && otherAgentToTargetOne < enemyTwoToTargetOne){
+                    return [true, targetTwo, targetOne]
+                }
+            }
+
+            return [false, new Target(-1, -1, 'error', 0), new Target(-1, -1, 'error', 0)]
+        } else {
+            return [false, new Target(-1, -1, 'error', 0), new Target(-1, -1, 'error', 0)]
+        }
+    }
+
     moveInNeighborFreeCell(){
         let xs = [0, -1, 0, 1]
         let ys = [1, 0, -1, 0]

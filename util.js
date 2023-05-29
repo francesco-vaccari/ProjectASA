@@ -1,3 +1,5 @@
+import { OtherAgent } from './beliefs.js'
+
 function ManhattanDistance(x1, y1, x2, y2){
     return Math.abs(x1 - x2) + Math.abs(y1 - y2)
 }
@@ -146,7 +148,7 @@ function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, throughAgent=fa
     return [['error'], false]
 }
 
-function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, throughAgent=false){
+function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent=new OtherAgent(false), otherAgent=new OtherAgent(false), throughAgent=false){
     let agentsMap = []
     for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])

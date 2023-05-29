@@ -569,7 +569,7 @@ class Enemies{
         this.enemyTwo = new Agent(undefined, undefined, undefined, undefined, undefined, false)
 
         this.initializeEnemies()
-        this.updateEnemiesVisibility()
+        this.updateEnemies()
         
         if(this.verbose){
             setInterval(() => {
@@ -594,21 +594,17 @@ class Enemies{
             await new Promise(res => setImmediate(res))
         }
     }
-    async updateEnemiesVisibility(){
+    async updateEnemies(){
         while(true){
             if(this.initialized){
-                let enemyOneVisible = false
-                let enemyTwoVisible = false
                 for(const agent of this.agents.getMap()){
                     if(agent[0] === this.enemyOne.id){
-                        enemyOneVisible = agent[1].visible
+                        this.enemyOne = agent[1]
                     }
                     if(agent[0] === this.enemyTwo.id){
-                        enemyTwoVisible = agent[1].visible
+                        this.enemyTwo = agent[1]
                     }
                 }
-                this.enemyOne.visible = enemyOneVisible
-                this.enemyTwo.visible = enemyTwoVisible
             }
             await new Promise(res => setImmediate(res))
         }
