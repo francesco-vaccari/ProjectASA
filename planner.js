@@ -1,9 +1,37 @@
-import { ManhattanDistance, BFS, PathLengthBFS } from "./util.js"
+import { ManhattanDistance, BFS, PathLengthBFS, readFile, pddlBFS } from "./util.js"
+import fetch from 'node-fetch'
 
 let sendLimit = true
 setInterval(() => {
     sendLimit = true
 }, 10)
+
+class LocalSolver {
+    constructor() {
+        this.domain = "(define (domain BLOCKS) (:requirements :strips) (:predicates (on ?x ?y) (ontable ?x) (clear ?x) (handempty) (holding ?x) ) (:action pick-up :parameters (?x) :precondition (and (clear ?x) (ontable ?x) (handempty)) :effect (and (not (ontable ?x)) (not (clear ?x)) (not (handempty)) (holding ?x))) (:action put-down :parameters (?x) :precondition (holding ?x) :effect (and (not (holding ?x)) (clear ?x) (handempty) (ontable ?x))) (:action stack :parameters (?x ?y) :precondition (and (holding ?x) (clear ?y)) :effect (and (not (holding ?x)) (not (clear ?y)) (clear ?x) (handempty) (on ?x ?y))) (:action unstack :parameters (?x ?y) :precondition (and (on ?x ?y) (clear ?x) (handempty)) :effect (and (holding ?x) (clear ?y) (not (clear ?x)) (not (handempty)) (not (on ?x ?y)))))",
+        this.problem = "(define (problem BLOCKS-4-0) (:domain BLOCKS) (:objects D B A C ) (:INIT (CLEAR C) (CLEAR A) (CLEAR B) (CLEAR D) (ONTABLE C) (ONTABLE A) (ONTABLE B) (ONTABLE D) (HANDEMPTY)) (:goal (AND (ON D C) (ON C B) (ON B A))) )"
+        this.baseUrl = "http://localhost:5001"
+        this.lamaSolverPath = "/package/lama/solve"
+    }
+    async solve() {
+        let response = await fetch(this.baseUrl + this.lamaSolverPath, {
+            method: 'POST',
+            body: JSON.stringify({
+                domain: this.domain,
+                problem: this.problem
+            }),
+            headers: { 'Content-Type': 'application/json' }
+        })
+        let solve_request_url = await response.json()
+        console.log(solve_request_url);
+        response = await fetch(this.baseUrl + solve_request_url['result'], {
+            method: 'POST'
+        })
+        let celery_result = await response.json()
+        console.log(celery_result);
+        return celery_result
+    }
+}
 
 
 class Target{
@@ -16,7 +44,7 @@ class Target{
 }
 
 class Planner{
-    constructor(client, map, agent, otherAgent, parcels, agents, comm, enemies, who, verbose=false){
+    constructor(client, map, agent, otherAgent, parcels, agents, comm, enemies, who, control, verbose=false){
         this.client = client
         this.verbose = verbose
         this.who = who
@@ -33,6 +61,8 @@ class Planner{
         this.comm = comm
         this.plan = ['error']
         this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
+        this.domain = ""
+        this.control = control
         this.startPlanning()
         this.sendTargetToOtherAgent()
         this.sendScoreParcelsCarriedToOtherAgent()
@@ -44,10 +74,13 @@ class Planner{
         }
     }
     async startPlanning(){
+        this.domain = await readFile("./domain.pddl")
         while(true){
             if(this.blockStrategy){
-                if(this.checkBlockStrategyStillPossible()){
-                    this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
+                if(this.checkBlockStrategyStillPossible() && this.control.ready){
+                    //this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
+                    //console.log("1");
+                    this.plan = (await pddlBFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, this.domain, true))[0]
                 } else {
                     this.blockStrategy = false
                     this.target = new Target(-1, -1, 'error', 0)
@@ -67,39 +100,48 @@ class Planner{
                         } else {
                             let pathLenToOtherAgent = PathLengthBFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
                             if(pathLenToOtherAgent < 3){
-                                if(pathLenToOtherAgent === 2 && this.agentCarriesParcels()){
-                                    tmpPlan = BFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].slice(0, 1)
+                                if(pathLenToOtherAgent === 2 && this.agentCarriesParcels() && this.control.ready){
+                                    //tmpPlan = BFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].slice(0, 1)
+                                    //console.log("2");
+                                    tmpPlan = (await pddlBFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, this.domain, true))[0].slice(0, 1)
                                 } else if (pathLenToOtherAgent === 1 && this.agentCarriesParcels()){
                                     tmpPlan = ['putdown']
                                 } else if(pathLenToOtherAgent === 1 && !this.agentCarriesParcels()){
                                     tmpPlan = this.moveInNeighborFreeCell()
-                                } else if(pathLenToOtherAgent === 2 && !this.agentCarriesParcels()){
-                                    let target = this.translatePlanIntoTarget(BFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].slice(0, 1))
+                                } else if(pathLenToOtherAgent === 2 && !this.agentCarriesParcels() && this.control.ready){
+                                    //let target = this.translatePlanIntoTarget(BFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].slice(0, 1))
+                                    //console.log("3");
+                                    let target = this.translatePlanIntoTarget((await pddlBFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, this.domain, true))[0].slice(0, 1))
                                     this.endExchangeTarget = target
                                     this.comm.say(JSON.stringify({belief: 'ENDEXCHANGETARGET', target: target}))
                                 }
 
-                                if(tmpPlan[0] === 'error'){
-                                    this.exchangeMaster = false
-                                    this.plan = []
-                                    this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
-                                    this.endExchangeTarget = new Target(-1, -1, 'error', 0)
-                                    this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
-                                } else {
-                                    this.target = this.translatePlanIntoTarget(tmpPlan)
-                                    this.plan = tmpPlan
+                                if (this.control.ready) {
+                                    if(tmpPlan[0] === 'error'){
+                                        this.exchangeMaster = false
+                                        this.plan = []
+                                        this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
+                                        this.endExchangeTarget = new Target(-1, -1, 'error', 0)
+                                        this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
+                                    } else {
+                                        this.target = this.translatePlanIntoTarget(tmpPlan)
+                                        this.plan = tmpPlan
+                                    }
                                 }
                             } else {
-                                tmpPlan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
-                                if(tmpPlan[0] === 'error'){
-                                    this.plan = []
-                                    this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
-                                    this.exchangeMaster = false
-                                    this.endExchangeTarget = new Target(-1, -1, 'error', 0)
-                                    this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
-                                } else {
-                                    this.target = this.translatePlanIntoTarget(tmpPlan)
-                                    this.plan = tmpPlan
+                                if (this.control.ready) {
+                                    //tmpPlan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
+                                    tmpPlan = (await pddlBFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, this.domain, true))[0]
+                                    if(tmpPlan[0] === 'error'){
+                                        this.plan = []
+                                        this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
+                                        this.exchangeMaster = false
+                                        this.endExchangeTarget = new Target(-1, -1, 'error', 0)
+                                        this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
+                                    } else {
+                                        this.target = this.translatePlanIntoTarget(tmpPlan)
+                                        this.plan = tmpPlan
+                                    }
                                 }
                             }
                         }
@@ -111,34 +153,40 @@ class Planner{
                 
                 if(this.exchangeSlave){
                     if(this.endExchangeTarget.intention !== 'error'){
-                        tmpPlan = BFS(this.agent.x, this.agent.y, this.endExchangeTarget.x, this.endExchangeTarget.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].concat('pickup')
-                        if(this.agent.x === this.endExchangeTarget.x && this.agent.y === this.endExchangeTarget.y){
-                            this.exchangeSlave = false
-                            this.plan = []
-                            this.target = new Target(this.agent.x, this.agent.y, 'exchange', 0)
-                            this.endExchangeTarget = new Target(-1, -1, 'error', 0)
-                            this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
-                        } else if(tmpPlan[0] !== 'error'){
-                            this.target = this.translatePlanIntoTarget(tmpPlan)
-                            this.target.intention = 'exchange'
-                            this.plan = tmpPlan
+                        if (this.control.ready) {
+                            //tmpPlan = BFS(this.agent.x, this.agent.y, this.endExchangeTarget.x, this.endExchangeTarget.y, this.map, this.agents, this.agent, this.otherAgent, true)[0].concat('pickup')
+                            //console.log("4");
+                            tmpPlan = (await pddlBFS(this.agent.x, this.agent.y, this.endExchangeTarget.x, this.endExchangeTarget.y, this.map, this.agents, this.agent, this.otherAgent, this.domain, true))[0].concat('pickup')
+                            if(this.agent.x === this.endExchangeTarget.x && this.agent.y === this.endExchangeTarget.y){
+                                this.exchangeSlave = false
+                                this.plan = []
+                                this.target = new Target(this.agent.x, this.agent.y, 'exchange', 0)
+                                this.endExchangeTarget = new Target(-1, -1, 'error', 0)
+                                this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
+                            } else if(tmpPlan[0] !== 'error'){
+                                this.target = this.translatePlanIntoTarget(tmpPlan)
+                                this.target.intention = 'exchange'
+                                this.plan = tmpPlan
+                            }
                         }
                     } else {
-                        tmpPlan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
-                        if(tmpPlan[0] === 'error'){
-                            this.exchangeSlave = false
-                            this.plan = []
-                            this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
-                            this.endExchangeTarget = new Target(-1, -1, 'error', 0)
-                            this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
-                        } else {
-                            this.target = this.translatePlanIntoTarget(tmpPlan)
-                            this.plan = tmpPlan
+                        if (this.control.ready) {
+                            //tmpPlan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
+                            //console.log("5");
+                            tmpPlan = (await pddlBFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, this.domain, true))[0]
+                            if(tmpPlan[0] === 'error'){
+                                this.exchangeSlave = false
+                                this.plan = []
+                                this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
+                                this.endExchangeTarget = new Target(-1, -1, 'error', 0)
+                                this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
+                            } else {
+                                this.target = this.translatePlanIntoTarget(tmpPlan)
+                                this.plan = tmpPlan
+                            }
                         }
                     }
                 }
-                
-
             } else {
                 let block = [false]
                 if(this.who === 'one'){
@@ -160,41 +208,51 @@ class Planner{
                     }
     
                     let found = false
-    
-                    for(const target of targets){
-                        if(!found){
-                            let tmpPlan = []
-                            if(this.checkExchange(target)){
-                                if(this.exchangeUtility()){
-                                    this.exchangeMaster = true
-                                    this.plan = []
-                                    this.target = new Target(this.agent.x, this.agent.y, 'exchange', 0)
-                                    this.comm.say(JSON.stringify({belief: 'STARTEXCHANGE'}))
-                                    found = true
-                                } else {
-                                    this.target = new Target(this.otherAgent.x, this.otherAgent.y, 'exchange', 0)
-                                    this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map , this.agents, this.agent, this.otherAgent, true)[0]
-                                    found = true
-                                }
+                    let count = 0
+                    while (!found && count < targets.length) {
+                        let tmpPlan = []
+                        let target = targets[count]
+                        if(this.checkExchange(target)){
+                            if(this.exchangeUtility()){
+                                this.exchangeMaster = true
+                                this.plan = []
+                                this.target = new Target(this.agent.x, this.agent.y, 'exchange', 0)
+                                this.comm.say(JSON.stringify({belief: 'STARTEXCHANGE'}))
+                                found = true
                             } else {
-                                tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
-                                if(tmpPlan[0][0] !== 'error'){
-                                    this.plan = tmpPlan[0]
-                                    this.target = target
+                                if (this.control.ready) {
+                                    this.target = new Target(this.otherAgent.x, this.otherAgent.y, 'exchange', 0)
+                                    //this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map , this.agents, this.agent, this.otherAgent, true)[0]
+                                    //console.log("6");
+                                    this.plan = (await pddlBFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map , this.agents, this.agent, this.otherAgent, this.domain, true))[0]
                                     found = true
                                 }
                             }
+                        } else {
+                            tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent)
+                            //console.log("7",this.agent.x, this.agent.y, target.x, target.y);
+                                if(tmpPlan[0][0] !== 'error'){
+                                    if (this.control.ready) {
+                                        tmpPlan = (await pddlBFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.otherAgent, this.domain))
+                                        this.plan = tmpPlan[0]
+                                        this.target = target
+                                        found = true
+                                    }
+                                }
                         }
+                        count++
                     }
     
                     if(!found){
                         this.target = new Target(this.agent.x, this.agent.y, 'targetNotFound', 0)
                         this.plan = []
                     } else {
-                        if(this.target.intention === 'pickup'){
-                            this.plan = this.plan.concat(['pickup'])
-                        } else if(this.target.intention === 'delivery'){
-                            this.plan = this.plan.concat(['putdown'])
+                        if (this.control.ready) {
+                            if(this.target.intention === 'pickup'){
+                                this.plan = this.plan.concat(['pickup'])
+                            } else if(this.target.intention === 'delivery'){
+                                this.plan = this.plan.concat(['putdown'])
+                            }
                         }
                     }
                 }
@@ -534,4 +592,4 @@ class Planner{
     }
 }
 
-export { Planner }
+export { Planner, LocalSolver }

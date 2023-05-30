@@ -1,9 +1,13 @@
 import { DeliverooApi, timer } from "@unitn-asa/deliveroo-js-client"
 import { default as config } from "./config1.js"
 import { Conf, You, ThisAgentParcels, OtherAgentParcels, GameMap, OtherAgent, ThisAgentAgents, OtherAgentAgents, Parcels, Agents, Enemies } from "./beliefs.js"
-import { Planner } from "./planner.js"
+import { LocalSolver, Planner } from "./planner.js"
 import { Communication, CommunicationHandler } from "./communication.js"
 
+const control = {
+    action: undefined,
+    ready: true
+}
 const client = new DeliverooApi( config.host, config.token )
 const conf = new Conf(client, false)
 const comm = new Communication(client, 'one', false)
@@ -17,43 +21,73 @@ const otherAgentParcels = new OtherAgentParcels(parcels, false)
 const thisAgentAgents = new ThisAgentAgents(client, agents, comm, false)
 const otherAgentAgents = new OtherAgentAgents(agents, false)
 const enemies = new Enemies(client, agent, otherAgent, agents, false)
-const planner = new Planner(client, map, agent, otherAgent, parcels, agents, comm, enemies, 'one', true)
+const planner = new Planner(client, map, agent, otherAgent, parcels, agents, comm, enemies, 'one', control, true)
 const commHandler = new CommunicationHandler(comm, agent, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, planner, false)
 
 var plan = []
-var action = undefined
-var ready = true
 
 async function agentControlLoop(){
+
+    let newParcel, parcel, iterator, putdown;
+
     while(true){
         plan = planner.getPlan()
-        if(ready && plan.length > 0){
-            ready = false
-            action = plan[0]
-            switch (action) {
+        if(control.ready && plan.length > 0){
+            control.ready = false
+            control.action = plan[0]
+
+            /*newParcel = false
+            putdown = false
+            if (control.action == 'up' || control.action == 'down' || control.action == 'left' || control.action == 'right') {
+                iterator = parcels.parcels.values()
+                while (!newParcel && (parcel = iterator.next().value) != null) {
+                    if (parcel.carriedBy == null && parcel.x == agent.x && parcel.y == agent.y) {
+                        newParcel = true
+                        control.lastAction = "pickup"
+                        console.log("1 Ciao");
+                    }
+                    await new Promise(res => setImmediate(res))
+                }
+                iterator = parcels.parcels.values()
+                if (map.getMatrix()[agent.x][agent.y].type == 2) {
+                    while (!putdown && (parcel = iterator.next().value) != null) {
+                        if (parcel.carriedBy == agent.id) {
+                            putdown = true
+                            control.lastAction = "putdown"
+                            console.log("1 Ciaone");
+                        }
+                        await new Promise(res => setImmediate(res))
+                    }
+                }
+            }*/
+
+            switch (control.action) {
                 case 'up':
                 case 'down':
                 case 'left':
                 case 'right':
-                    client.move(action).then((res) => {
-                        ready = true
+                    client.move(control.action).then((res) => {
+                        control.ready = true
                     })
                     break;
                 case 'pickup':
                     await client.pickup().then(() => {
-                        ready = true
+                        control.ready = true
                     })
                     break;
                 case 'putdown':
                     await client.putdown().then(() => {
-                        ready = true
+                        control.ready = true
                     })
                     break;
                 default:
-                    ready = true
+                    control.ready = true
                     break;
             }
+            
+            //if (!(newParcel || putdown)) {
             plan.shift()
+            //}
         }
         await new Promise(res => setImmediate(res))
     }
