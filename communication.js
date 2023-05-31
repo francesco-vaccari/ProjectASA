@@ -8,6 +8,7 @@ class Communication{
         this.INIT = 'init'
         this.SECRET = 'secret'
         this.OKAY = 'okay'
+        this.counter = 0
         if(this.who === 'one'){
             this.initializeCommunicationOne()
         } else if(this.who === 'two'){
@@ -17,7 +18,7 @@ class Communication{
     initializeCommunicationOne(){
         let interval = setInterval(() => {
             this.client.shout(this.INIT)
-        }, 50)
+        }, 200)
     
         this.client.onMsg((fromId, fromName, msg) => {
             if(this.otherAgentId === undefined){
@@ -68,6 +69,8 @@ class Communication{
         })
     }
     say(msg){
+        // this.counter += 1
+        // console.log(this.counter)
         if(this.otherAgentId !== undefined){
             this.client.say(this.otherAgentId, msg)
             return true

@@ -1,3 +1,5 @@
+import { Beliefset, PddlProblem, onlineSolver } from "@unitn-asa/pddl-client"
+import fs from 'fs'
 import { OtherAgent } from './beliefs.js'
 
 function ManhattanDistance(x1, y1, x2, y2){
@@ -227,4 +229,82 @@ function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent=new OtherAgent(fal
     return [1000, false]
 }
 
-export { ManhattanDistance, BFS, PathLengthBFS }
+function readFile ( path ) {
+    
+    return new Promise( (res, rej) => {
+
+        fs.readFile( path, 'utf8', (err, data) => {
+            if (err) rej(err)
+            else res(data)
+        })
+
+    })
+
+}
+
+function translatePddl(pddlPlan) {
+    let plan = []
+    let from, to;
+    if (pddlPlan != undefined) {
+        for (const action of pddlPlan) {
+            switch (action.action) {
+                case "move":
+                    from = action.args[0].split("_").slice(1);
+                    to = action.args[1].split("_").slice(1);
+                    if (to[0] - from[0] > 0) {
+                        plan.push("right")
+                    } else if (to[0] - from[0] < 0) {
+                        plan.push("left")
+                    } else if (to[1] - from[1] > 0) {
+                        plan.push("up")
+                    } else if (to[1] - from[1] < 0) {
+                        plan.push("down")
+                    }
+                    break;
+            }
+        }
+    }
+    return plan
+}
+
+async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, domain, throughAgent=false) {
+
+    let tmpBeliefset,problem
+
+    let tmpPlan = []
+
+    if (ex != sx || ey != sy) {
+        tmpBeliefset = new Beliefset()
+        for (const entry of map.mapBeliefset.entries) {
+            tmpBeliefset.declare(entry[0])
+        }
+        for (const agent of agents.getMap()){
+            if(agent[1].id !== thisAgent.id){
+                if(agent[1].id === otherAgent.id){
+                    if(!throughAgent) {
+                        tmpBeliefset.declare("cell c_" + agent[1].x + "_" + agent[1].y,false)
+                    }
+                } else {
+                    tmpBeliefset.declare("cell c_" + agent[1].x + "_" + agent[1].y,false)
+                }
+            }
+        }
+        tmpBeliefset.declare("in c_" + sx + "_" + sy)
+        problem = new PddlProblem("BFS",
+            tmpBeliefset.objects.join(' '),
+            tmpBeliefset.toPddlString(),
+            "in c_" + ex + "_" + ey)
+        try {
+            //console.log("a",sx, sy, ex, ey);
+            // console.log(problem.toPddlString());
+            tmpPlan = translatePddl(await onlineSolver(domain,problem.toPddlString()))
+        } catch (error) {
+            console.log(error);
+            return [['error'], false]
+        }
+    }
+
+    return [tmpPlan,throughAgent];
+}
+
+export { ManhattanDistance, BFS, PathLengthBFS, readFile, pddlBFS }

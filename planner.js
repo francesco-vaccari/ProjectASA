@@ -1,9 +1,10 @@
-import { ManhattanDistance, BFS, PathLengthBFS } from "./util.js"
+import { ManhattanDistance, BFS, PathLengthBFS, readFile, pddlBFS } from "./util.js"
+import fetch from 'node-fetch'
 
 let sendLimit = true
 setInterval(() => {
     sendLimit = true
-}, 10)
+}, 100)
 
 
 class Target{
@@ -16,9 +17,10 @@ class Target{
 }
 
 class Planner{
-    constructor(client, map, agent, otherAgent, parcels, agents, comm, enemies, who, verbose=false){
+    constructor(client, map, agent, otherAgent, parcels, agents, comm, enemies, who, control, verbose=false){
         this.client = client
         this.verbose = verbose
+        this.control = control
         this.who = who
         this.blockStrategy = false
         this.exchangeMaster = false
@@ -33,9 +35,12 @@ class Planner{
         this.comm = comm
         this.plan = ['error']
         this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
+        this.domain = ""
         this.startPlanning()
         this.sendTargetToOtherAgent()
         this.sendScoreParcelsCarriedToOtherAgent()
+        this.pddlPlan = []
+        this.startTrackingTarget()
         if(this.verbose){
             setInterval(() => {
                 console.log('['+this.agent.name+']\tTARGET', this.target.x, this.target.y, this.target.intention)
@@ -44,10 +49,11 @@ class Planner{
         }
     }
     async startPlanning(){
+        this.domain = await readFile("./domain.pddl")
         while(true){
             if(this.blockStrategy){
                 if(this.checkBlockStrategyStillPossible()){
-                    this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
+                    this.plan = BFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map, this.agents, this.agent, this.otherAgent, false)[0]
                 } else {
                     this.blockStrategy = false
                     this.target = new Target(-1, -1, 'error', 0)
@@ -339,6 +345,72 @@ class Planner{
             }
         }
     }
+
+    async startTrackingTarget(){
+        let lastTarget = this.target
+        let again = false
+        let once = true
+        setInterval(() => {
+            again = true
+        }, 3500)
+        while(true){
+            if(this.control.ready){
+                if(this.exchangeMaster || this.exchangeSlave){
+                    if(once){
+                        once = false
+                        setTimeout(() => {
+                            this.exchangeSlave = false
+                            this.exchangeMaster = false
+                            this.plan = []
+                            this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
+                            this.endExchangeTarget = new Target(-1, -1, 'error', 0)
+                            this.comm.say(JSON.stringify({belief: 'ENDEXCHANGE'}))
+                            once = true
+                        }, 11000)
+                    }
+                    this.pddlPlan = []
+                    if(this.exchangeMaster){
+                        if(this.exchangeMaster.intention !== 'error'){
+                            let pathLenToOtherAgent = PathLengthBFS(this.agent.x, this.agent.y, this.otherAgent.x, this.otherAgent.y, this.map, this.agents, this.agent, this.otherAgent, true)[0]
+                            if(pathLenToOtherAgent == 1 && this.agentCarriesParcels()){
+                                this.pddlPlan = ['putdown']
+                                // this.pddlPlan = (await pddlBFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map , this.agents, this.agent, this.otherAgent, this.domain, false))[0]                        
+
+                            } else {
+                                this.pddlPlan = []
+                                this.pddlPlan = (await pddlBFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map , this.agents, this.agent, this.otherAgent, this.domain, false))[0]
+                            }
+                        }
+                    }
+                    if(this.exchangeSlave){
+                        if(this.endExchangeTarget.intention !== 'error'){
+                            this.pddlPlan = []
+                            this.pddlPlan = (await pddlBFS(this.agent.x, this.agent.y, this.endExchangeTarget.x, this.endExchangeTarget.y, this.map , this.agents, this.agent, this.otherAgent, this.domain, false))[0]
+                            this.pddlPlan = this.pddlPlan.concat(['pickup'])
+                        } else {
+                            this.pddlPlan = []
+                            this.pddlPlan = (await pddlBFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map , this.agents, this.agent, this.otherAgent, this.domain, false))[0]
+                        }
+                    }
+                } else {
+                    this.pddlPlan = []
+                    if(this.target.intention !== lastTarget.intention || this.target.x !== lastTarget.x || this.target.y !== lastTarget.y || again){
+                        again = false
+                        this.pddlPlan = []
+                        this.pddlPlan = (await pddlBFS(this.agent.x, this.agent.y, this.target.x, this.target.y, this.map , this.agents, this.agent, this.otherAgent, this.domain, false))[0]
+                        if(this.target.intention === 'delivery'){
+                            this.pddlPlan = this.pddlPlan.concat(['putdown'])
+                        } else if(this.target.intention === 'pickup'){
+                            this.pddlPlan = this.pddlPlan.concat(['pickup'])
+                        }
+                        lastTarget = this.target
+                    }
+            }
+        }
+            await new Promise(res => setImmediate(res))
+        }
+    }
+
     translatePlanIntoTarget(plan){
         let x = this.agent.x
         let y = this.agent.y
@@ -531,6 +603,9 @@ class Planner{
     }
     getPlan(){
         return this.plan
+    }
+    getPddlPlan(){
+        return this.pddlPlan
     }
 }
 

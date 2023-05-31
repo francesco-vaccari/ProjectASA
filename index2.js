@@ -4,6 +4,10 @@ import { Conf, You, ThisAgentParcels, OtherAgentParcels, GameMap, OtherAgent, Th
 import { Planner } from "./planner.js"
 import { Communication, CommunicationHandler } from "./communication.js"
 
+var control = {
+    ready: true
+}
+
 const client = new DeliverooApi( config.host, config.token )
 const conf = new Conf(client, false)
 const comm = new Communication(client, 'two', false)
@@ -17,18 +21,19 @@ const otherAgentParcels = new OtherAgentParcels(parcels, false)
 const thisAgentAgents = new ThisAgentAgents(client, agents, comm, false)
 const otherAgentAgents = new OtherAgentAgents(agents, false)
 const enemies = new Enemies(client, agent, otherAgent, agents, false)
-const planner = new Planner(client, map, agent, otherAgent, parcels, agents, comm, enemies, 'two', true)
+const planner = new Planner(client, map, agent, otherAgent, parcels, agents, comm, enemies, 'two', control, true)
 const commHandler = new CommunicationHandler(comm, agent, otherAgent, map, thisAgentParcels, otherAgentParcels, thisAgentAgents, otherAgentAgents, planner, false)
 
 var plan = []
 var action = undefined
-var ready = true
+
 
 async function agentControlLoop(){
     while(true){
-        plan = planner.getPlan()
-        if(ready && plan.length > 0){
-            ready = false
+        // plan = planner.getPlan()
+        plan = planner.getPddlPlan()
+        if(control.ready && plan.length > 0){
+            control.ready = false
             action = plan[0]
             switch (action) {
                 case 'up':
@@ -36,21 +41,21 @@ async function agentControlLoop(){
                 case 'left':
                 case 'right':
                     client.move(action).then((res) => {
-                        ready = true
+                        control.ready = true
                     })
                     break;
                 case 'pickup':
                     await client.pickup().then(() => {
-                        ready = true
+                        control.ready = true
                     })
                     break;
                 case 'putdown':
                     await client.putdown().then(() => {
-                        ready = true
+                        control.ready = true
                     })
                     break;
                 default:
-                    ready = true
+                    control.ready = true
                     break;
             }
             plan.shift()
