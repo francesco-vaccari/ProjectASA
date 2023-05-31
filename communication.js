@@ -62,15 +62,10 @@ class Communication{
         this.client.onMsg((fromId, fromName, msg) => {
             if(this.otherAgentId === fromId){
                 this.buffer.push(msg)
-                // if(this.verbose){
-                //     console.log('['+this.who+']\tReceived\t', msg)
-                // }
             }
         })
     }
     say(msg){
-        // this.counter += 1
-        // console.log(this.counter)
         if(this.otherAgentId !== undefined){
             this.client.say(this.otherAgentId, msg)
             return true
@@ -101,7 +96,12 @@ class CommunicationHandler{
         while(true){
             if(this.comm.buffer.length > 0){
                 let msg = this.comm.buffer.shift()
-                let json = JSON.parse(msg)
+                let json = {}
+                try{
+                    json = JSON.parse(msg)
+                } catch(err) {
+                    json.belief = 'error'
+                }
                 if(json.belief === 'YOU'){
                     this.otherAgent.set(json)
                 } else if (json.belief === 'PARCELS'){

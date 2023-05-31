@@ -53,13 +53,15 @@ class You{
         })
     }
     async makeSureYouIsSet(){
-        while(this.id === undefined){
+        let inter = setInterval(() => {
             this.client.move('up')
             this.client.move('down')
             this.client.move('left')
             this.client.move('right')
-            await new Promise(res => setImmediate(res))
-        }
+            if (this.id !== undefined){
+                clearInterval(inter)
+            }
+        }, 500)
     }
     print(){
         console.log('[YOU]\t', this.id, this.name, this.x, this.y, this.score)

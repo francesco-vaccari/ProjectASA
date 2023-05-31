@@ -30,8 +30,8 @@ var action = undefined
 
 async function agentControlLoop(){
     while(true){
-        // plan = planner.getPlan()
-        plan = planner.getPddlPlan()
+        plan = planner.getPlan()
+        // plan = planner.getPddlPlan()
         if(control.ready && plan.length > 0){
             control.ready = false
             action = plan[0]
