@@ -1,0 +1,79 @@
+% LaTeX Template for short student reports.
+% Citations should be in bibtex format and go in references.bib
+\documentclass[a4paper, 11pt]{article}
+\usepackage[top=3cm, bottom=3cm, left = 2cm, right = 2cm]{geometry} 
+\geometry{a4paper} 
+\usepackage[utf8]{inputenc}
+\usepackage{textcomp}
+\usepackage{graphicx} 
+\usepackage{amsmath,amssymb}  
+\usepackage{bm}  
+\usepackage[pdftex,bookmarks,colorlinks,breaklinks]{hyperref}  
+\hypersetup{linkcolor=black,citecolor=black,filecolor=black,urlcolor=black} % black links, for printed output
+\usepackage{memhfixc} 
+\usepackage{pdfsync}  
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+
+\title{Autonomous Software Agents \\ \large{Project Report} }
+\author{Francesco Vaccari, Simone Compri}
+%\date{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+
+
+
+
+
+
+
+
+
+\section{First section}
+
+Roba da mettere:
+
+Un agente
+\begin{itemize}
+\item Beliefs implementate
+\item Come abbiamo fatto belief revision
+\item Le intention che abbiamo considerato (pickup, delivery, idle(search))
+\item Implementazione delle intention e intention revison
+\item formulazione del plan con il pddl e cenno alla versione BFS
+\end{itemize}
+
+Due agenti
+\begin{itemize}
+\item come abbiamo gestito la comunicazione
+\item belief aggiunte rispetto alla versione con un agente solo
+\item come facciamo belief revision con la comunicazione per sincronizzare i due agenti
+\item Come abbiamo cambiato le intention singole rispetto ad un agente solo (non sceglie il target se è dell'altro agente)
+\item le intention e i multi-agent plan che abbiamo aggiunto
+\item come abbiamo gestito l'implementazione delle nuove intention
+\item anche qua dire sul pddl cosa abbiamo fatto
+\end{itemize}
+
+C'è da chiarire la questione dei desire e spiegare che magari noi abbiamo astratto solo le intention. Sarebbe carino fare degli pseudo codici per spiegare il while principale del planner per far vedere come abbiamo effettivamente gestito le cose. Anche potrebbe essere interessante spiegare le funzioni di utility che abbiamo creato, specialmente per la prima parte del progetto.
+
+
+
+
+
+
+
+
+
+\pagebreak
+
+\section{Second section}
+
+Testo
+
+\pagebreak
+
+\bibliographystyle{abbrv}
+% \bibliography{references}  % need to put bibtex references in references.bib
+\end{document}
