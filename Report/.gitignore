@@ -1,10 +1,10 @@
 .DS_Store
-.aux
-.log
-.out
-.pdfsync
-.gz
-.toc
+*.aux
+*.log
+*.out
+*.pdfsync
+*.gz
+*.toc
 
 # Dependency directories
 node_modules/
