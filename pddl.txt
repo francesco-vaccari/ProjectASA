@@ -1,4 +1,4 @@
-(define (domain default)
+(define (domain deliveroo)
     (:requirements :strips)
     (:predicates
         (cell ?x_y)
@@ -18,7 +18,7 @@
     (:objects c_0_0 c_0_1 c_0_2 c_0_3 c_1_1 c_1_2 c_2_0 c_2_1 c_2_2 c_2_3 c_3_0)
     (:init 
         (cell c_0_0) (cell c_0_1) (cell c_0_2) (cell c_0_3)
-        (cell c_1_1) (cell c_1_2)
+        (not (cell c_1_1)) (cell c_1_2)
         (cell c_2_0) (cell c_2_1) (cell c_2_2) (cell c_2_3)
         (cell c_3_0)
         (near c_0_0 c_0_1)
@@ -37,6 +37,6 @@
 )
 
 1 1 1 1
-0 1 1 0
+0 4 1 0
 1 1 1 1
 1 0 0 0
