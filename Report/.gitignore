@@ -5,6 +5,7 @@
 *.pdfsync
 *.gz
 *.toc
+*.pdf
 
 # Dependency directories
 node_modules/
