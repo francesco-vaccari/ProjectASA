@@ -43,10 +43,19 @@
 \section{Single-Agent Architecture}
 
 
-\subsection{Beliefs and Beliefs Revision}
+\subsection{Beliefs Sets and Beliefs Revision}
+Most of the belief sets implemented can be considered knowledge, facts that the agent knows certainly are true. Only with regard to parcels and agents, some information that might not be true is stored; this allows the agent to have some memory which is fundamental for planning. The belief sets implemented reflect all the variable elements of the environment:
+\begin{itemize}
+\item \textbf{Environment properties}: After connection of the agent, 3 important variables are set: parcels and agents viewing distances and the parcels decaying interval (if present). These values are used to implement visibility and decay of parcels and visibility of enemy agents.
+\item \textbf{The Agent Itself}: Each time the listener \verb|onYou| is called, score and coordinates of the agent are updated.
+\item \textbf{Game Map}: After connection to the server, through \verb|onMap|, the agent receives  information about the cells that constitute the game map. Each cell is initialized and then stored into a matrix to use later during planning. The attributes of the cells describe their position in the map and whether they are deliverable cells, spawning cells, normale walkable cells or walls. Furthermore, each cell is initialized with an attribute \verb|lastSeen| that counts how much time has passed since the agent has last seen the cell; this value is necessary to implement and plan the idle searching movement.
+\item \textbf{Parcels}: Each parcel is identified by an id and described by its position in the map, reward and whether it is currently being carried. Along with these values, we added a visibility attribute. This lets us keep track of parcels that are not currently within the viewing area of the agent to improve planning capabilities. Also, the decaying interval is used to update parcels that are not visible by the agent. Knowing the agent's viewing distance is useful also to correct inconsistencies in the parcels stored; for example, when an enemy agent picks up a parcel that is not currently visible, the agent will not know that the parcel is not there anymore until the old coordinates are seen by the agent. The revision of this belief set happens whenever \verb|onParcelsSensing| is called.
+\item \textbf{Agents}: Similarly to parcels, each agent is identified by an id, and is described by its position, score and visibility. These values get updated whenever \verb|onAgentsSensing| is called. The visibility attribute is computed by knowing how far away our agent can see enemies. An agent that is not visible for more than three seconds is deleted by the belief set, this allows us to remember the position of enemies in the recent past without really impacting future decisions since it's very likely that after that amount of time the last known position is no longer accurate.
+\end{itemize}
 
-
+As explained, the beliefs revision process happens asynchronously with respect to the computation and execution of the plan. This allows the agent to always have at hand the most recent and consistent information about itself and about the various elements of the environment.
 \subsection{Intentions and Intentions Revision}
+
 
 
 \subsection{Planning}
@@ -181,9 +190,9 @@ The agents are assigned two different roles: sender and receiver. The sender for
 Once the communication is initialized, each agent will start sharing the information about its beliefs sets and intentions. A buffer is used to store temporarily the messages waiting to be processed by a function that modifies variables or information stored according to the type of the message received. The implementation of the handler affects the following information kept by the agents:
 \begin{itemize}
 \item \textbf{Friend Agent}: Each agent sends constantly its updated position, score, total reward of parcels carried and current target of the plan in execution. This allows better decisions while choosing for targets and avoids the generation of conflicting plans.
-\item \textbf{Enemy Agents}: Since each agent has its own list of enemies that it sees, when this list is updated a message is sent so that the other agent can utilize the information while planning.
+\item \textbf{Enemy Agents}: Since each agent has its own list of enemies that it sees, when this list is updated a message is sent so that the other agent can utilize the information during planning.
 \item \textbf{Parcels}: When the belief set regarding parcels is updated, a message is sent in order to let the other agent know the most recent confirmed state of visible parcels.
-\item \textbf{Map}: The handling of this type of messages has the sole purpose of provide better information for the idle movement implemented in the planner. Each time an agent moves it sends information about the cells that are visible so that both agent's maps are consistent with each other.
+\item \textbf{Map}: The handling of this type of messages has the sole purpose of provide better information for the idle searching movement implemented in the planner. Each time an agent moves it sends information about the cells that are visible so that both agent's maps are consistent with each other.
 \item \textbf{Exchange Intention}: Whenever the planner decides to perform the exchange of parcels there is the need to communicate the intention to the other agent and to also update internal planning targets whenever they are not computed locally. Moreover, there is the need to handle the exit from the intention exchange whenever an error occurs or the process ends successfully.
 \item \textbf{Block Strategy Intention}: Similarly to the exchange intention, there is also the need to handle messages that allow the agents to coordinate when a planner decides to perform the blocking strategy.
 \end{itemize}
