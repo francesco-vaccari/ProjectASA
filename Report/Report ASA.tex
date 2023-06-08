@@ -205,7 +205,6 @@ Since the online solver adds a latency due to the network latency we created an 
 
 \section{Multi-Agent Architecture}
 
-
 \subsection{Communication}
 \subsubsection{Initialization}
 In order to allow the two agents to exchange information about intents and beliefs, a communication needs to be established in the first few moments of the execution of the programs. A simple protocol, composed of 3 types of messages, allows the agents to recognize each other and discover the agent ids that will be used after the initialization is completed successfully.
@@ -224,45 +223,23 @@ Once the communication is initialized, each agent will start sharing the informa
 \end{itemize}
 
 \subsection{Beliefs and Beliefs Revision}
+In addition to the belief sets of the single-agent architecture, some more sets were added to enable the implementation of more complex behavior and allow the coordination between the agents. Below is the list of new beliefs added:
+\begin{itemize}
+\item \textbf{Joint Parcels Set}: We decided that the best and easiest way to implement a joint belief set was to let each agent have its own set that is sent via message when updated, and then the message handler has the duty to build the joint set. Only the complete set is used while planning. This allows us to reuse the implementation of the beliefs set of the single-agent architecture and to only build on top of it. The sharing of parcels positions and visibilities makes it less likely that an agent is left searching for targets to pickup.
+\item \textbf{Joint Agents Set}: The same design decision has been implemented for the agents beliefs set: the two different sets get synced up when an update is received.
+\item \textbf{Enemy Agents}: This belief set was implemented specifically to enable a particular intention that will be explainer later: the blocking strategy. This internal representation of enemies stores the information regarding up to two agents that are competing with our cooperating duo. The information stored consists of ids, scores, positions and visibilities, and is shared between our agents.
+\item \textbf{Ally Agent Representation}: This information is crucial to the implementation of multi-agent plans because it allows only one agent to perform all the computation necessary. The information store is not limited to coordinates and score, but extends to details about the current target and the total reward of parcels that are being carried.
+\end{itemize}
+
+Just like for the single-agent architecture, updates of each set happen asynchronously and are triggered by the events \verb|onYou|, \verb|onParcelsSensing| and \verb|onAgentsSensing|.
+
+
 
 
 \subsection{Intentions and Intentions Revision}
 
 
 \subsection{Planning}
-
-
-
-
-
-
-\pagebreak
-
-\section{Robe da fare}
-
-Roba da mettere:
-
-Un agente
-\begin{itemize}
-\item Beliefs implementate
-\item Come abbiamo fatto belief revision
-\item Le intention che abbiamo considerato (pickup, delivery, idle(search))
-\item Implementazione delle intention e intention revision
-\item formulazione del plan con il pddl e cenno alla versione BFS
-\end{itemize}
-
-Due agenti
-\begin{itemize}
-\item come abbiamo gestito la comunicazione
-\item belief aggiunte rispetto alla versione con un agente solo
-\item come facciamo belief revision con la comunicazione per sincronizzare i due agenti
-\item Come abbiamo cambiato le intention singole rispetto ad un agente solo (non sceglie il target se è dell'altro agente)
-\item le intention e i multi-agent plan che abbiamo aggiunto
-\item come abbiamo gestito l'implementazione delle nuove intention
-\item anche qua dire sul pddl cosa abbiamo fatto
-\end{itemize}
-
-C'è da chiarire la questione dei desire e spiegare che magari noi abbiamo astratto solo le intention. Sarebbe carino fare degli pseudo codici per spiegare il while principale del planner per far vedere come abbiamo effettivamente gestito le cose. Anche potrebbe essere interessante spiegare le funzioni di utility che abbiamo creato, specialmente per la prima parte del progetto.
 
 
 
