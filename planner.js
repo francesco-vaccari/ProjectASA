@@ -1,4 +1,4 @@
-import { ManhattanDistance, BFS, PathLengthBFS  } from "./util.js"
+import { ManhattanDistance, BFS, PathLengthBFS, readFile, pddlBFS  } from "./util.js"
 
 class Target{
     constructor(x, y, intention='error', score=0){
@@ -10,7 +10,7 @@ class Target{
 }
 
 class Planner{
-    constructor(client, map, agent, parcels, agents, verbose=false){
+    constructor(client, map, agent, parcels, agents, control, verbose=false){
         this.client = client
         this.verbose = verbose
         this.map = map
@@ -19,6 +19,8 @@ class Planner{
         this.agents = agents
         this.plan = []
         this.target = new Target(this.agent.x, this.agent.y, 'error', 0)
+        this.control = control
+        this.domain = ""
         this.startPlanning()
         if(this.verbose){
             setInterval(() => {
@@ -28,26 +30,30 @@ class Planner{
         }
     }
     async startPlanning(){
+        this.domain = await readFile("./domain.pddl")
         while(true){
-            let targets = []
-            targets = this.getTargetsIdleMovement().concat(targets)
-            if(this.agentKnowsParcels() || this.agentCarriesParcels()){
-                targets = this.getTargetsWithUtility().concat(targets)
-            }
-            for(const target of targets){
-                let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents)
-                if(tmpPlan[0] != 'error'){
-                    this.plan = tmpPlan
-                    this.target = target
-                    break
+            if(this.control.ready){
+                let targets = []
+                targets = this.getTargetsIdleMovement().concat(targets)
+                if(this.agentKnowsParcels() || this.agentCarriesParcels()){
+                    targets = this.getTargetsWithUtility().concat(targets)
+                }
+                for(const target of targets){
+                    //let tmpPlan = BFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents)
+                    let tmpPlan = await pddlBFS(this.agent.x, this.agent.y, target.x, target.y, this.map , this.agents, this.agent, this.domain)
+                    if(tmpPlan[0] != 'error'){
+                        this.plan = tmpPlan
+                        console.log(this.plan);
+                        this.target = target
+                        break
+                    }
+                }
+                if(this.target.intention === 'pickup'){
+                    this.plan = this.plan.concat(['pickup'])
+                } else if(this.target.intention === 'delivery'){
+                    this.plan = this.plan.concat(['putdown'])
                 }
             }
-            if(this.target.intention === 'pickup'){
-                this.plan = this.plan.concat(['pickup'])
-            } else if(this.target.intention === 'delivery'){
-                this.plan = this.plan.concat(['putdown'])
-            }
-
             await new Promise(res => setImmediate(res))
         }
     }

@@ -1,4 +1,5 @@
 import { ManhattanDistance } from './util.js'
+import { Beliefset } from '@unitn-asa/pddl-client'
 
 class Conf{
     constructor(client, verbose=false){
@@ -167,6 +168,7 @@ class GameMap{
         this.n_rows = undefined
         this.n_cols = undefined
         this.matrix = []
+        this.mapBeliefset = new Beliefset()
         this.client.onMap((width, height, cells) => {
             this.n_rows = width
             this.n_cols = height
@@ -187,6 +189,7 @@ class GameMap{
                 }
                 this.matrix[cell.x][cell.y].type = type
             }
+            this.initializeOnlineBeliefset()
             if(this.verbose){
                 this.print()
             }
@@ -209,6 +212,36 @@ class GameMap{
                 }
             }
         }, 300)
+    }
+    initializeOnlineBeliefset() {
+
+        let tmpCellArray, tmpCell
+
+        this.mapBeliefset = new Beliefset()
+        for (let i = 0; i < this.n_rows; i++) {
+            for (let j = 0; j < this.n_cols; j++) {
+                tmpCell = this.getMatrix()[i][j]
+                if (tmpCell.type != 0) {
+                    this.mapBeliefset.declare("cell c_" + tmpCell.x + "_" + tmpCell.y) //pddl cell initialization
+                }
+            }
+        }
+
+        for (const cell of this.mapBeliefset.objects) { //pddl cell edges initialization
+            tmpCellArray = cell.split("_")
+            for (let i = -1; i < 2; i+=2) {
+                tmpCell = this.getMatrix()[Number.parseInt(tmpCellArray[1]) + i]
+                tmpCell = tmpCell != undefined ? tmpCell[tmpCellArray[2]] : undefined
+                if (tmpCell != undefined && tmpCell.type != 0) {
+                    this.mapBeliefset.declare("near " + cell + " c_" + (Number.parseInt(tmpCellArray[1]) + i) + "_" + tmpCellArray[2])
+                }
+                tmpCell =  this.getMatrix()[tmpCellArray[1]]
+                tmpCell = tmpCell != undefined ? tmpCell[Number.parseInt(tmpCellArray[2]) + i] : undefined
+                if (tmpCell != undefined && tmpCell.type != 0) {
+                    this.mapBeliefset.declare("near " + cell + " c_" + (tmpCellArray[1]) + "_" + (Number.parseInt(tmpCellArray[2]) + i))
+                }
+            }
+        }
     }
     print(){
         console.log('\n-------[MAP]-------')
