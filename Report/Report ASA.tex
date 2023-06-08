@@ -56,12 +56,33 @@ Most of the belief sets implemented can be considered knowledge, facts that the 
 As explained, the beliefs revision process happens asynchronously with respect to the computation and execution of the plan. This allows the agent to always have at hand the most recent and consistent information about itself and about the various elements of the environment.
 
 \subsection{Intentions and Intentions Revision}
-
+For the single-agent architecture we identified 3 possible intentions:
+\begin{itemize}
+\item \textbf{Search for parcels}: This is the behavior which can be considered as default, and it is chosen when the agent is not carrying any parcel and does not know the position of any parcel. This intention is also chosen when the plan to perform any other intention would fail if executed: for example, when an enemy agent is blocking the only path that leads to the only parcel in view. In the code, this intention is identified as \verb|idle|, and is implemented using a \verb|lastSeen| attribute assigned to each cell in the map. This attribute indicates how much time has passed since the last time the agent saw that specific cell. When the agent chooses this intention, it travels around the map picking as target the cell with the highest \verb|lastSeen| value; and since this value is update asynchronously, as soon as the agents sees that the cell is empty, the attribute is updated and the target of this intention is changed.
+\item \textbf{Pickup a parcel}: When the parcels belief set is not empty, if the agent decides to pick up a parcel, the intention chosen is \verb|pickup|. When this happens the parcel is picked as target and the agent starts moving towards the correct cell.
+\item \textbf{Deliver parcels carried}: When the agent is carrying parcels, if it is deemed the best decision, the agent will choose to perform the \verb|delivery|. The target of this intention is the closest delivery cell that can be reached from the agent's position.
+\end{itemize}
 
 \subsubsection{Utility Functions}
+The way the intentions are implemented is complex to handle situations in which the agent has to decide if it should deliver the parcels it is carrying or if it should change its intention to go pick up more parcels in its viewing distance. Furthermore, since there might be agents that are trying to accomplish the same ultimate goal of scoring more points, the agent has to consider wether an enemy distance to certain cells. Modeling the wanted behavior in such situations can be really challenging, and so we decided to implement a system which assigns to each cell in the map a score. These scores are asynchronously recomputed and the cell with the highest value is chosen as the target. The score is the output of an utility function which takes as input all the elements in the environment and outputs a score map using two formulas we designed: one for cell with the property of spawning parcels, and one for the cells assigned for delivery.
 
+Next is the formula used to compute the score for a spawning cell with coordinates $x,y$:
+\begin{equation}
+score(x,y) = \left(\frac{{ParcelsRewardInCell(x,y)^{1.2}}}{{DistanceToAgent(x,y)}}\right) \cdot EnemyProximity(x,y,agents)^2
+\end{equation}
+In the formula, $ParcelsRewardInCell$ is the sum of the rewards of the parcels in the cell, while $DistanceToAgent$ is the minimum path length to to agent and $EnemyProximity$ is computed as follows:
+\begin{equation}
+EnemyProximity(x,y,agents) = -(\frac{1}{\max_{a_{i} \in \{agents\}} Distance(x, y, a_{i}.x, a_{i}.y)} + 1) + 1
+\end{equation}
+The $Distance$ function used is the Manhattan Distance. As default, when no agents are known to the agent, the value of $EnemyProximity$ is set to $1$. Otherwise, the formula outputs a value in the range $[0,1]$ that acts as a scaling factor that discourages the agent to choose parcels, even with high reward, when they are very close to enemy agents.
 
+And following there is the formula used for cells assigned for delivery:
+\begin{equation}
+\frac{ParcelsRewardsCarried^{~0.8}}{DistanceToAgent(x,y)}
+\end{equation}
+The term $ParcelsRewardsCarried$ indicates the sum of the rewards of the parcels carried by the agent while $DistanceToAgent$ is the minimum path length from the agent.
 
+Considering all the elements in the environment and combining them with distances between elements and different rewards of the parcels results in a behavior that is reactive and adapts to the frequent changes on the map. This process of computing scores is continuous and asynchronous and allows for an easy decision of the intention to choose. Since each score is related to a cell, the coordinates of the target are ready as soon as the highest score is found so that the plan can be immediately calculated. This makes it also possible to have backup targets since they are sorted in a list, this is useful in case the planner does not find a path for the first candidate target.
 
 \subsection{Planning}
 
