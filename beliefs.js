@@ -36,6 +36,18 @@ class You{
                 this.print()
             }
         })
+        this.makeSureYouIsSet()   
+    }
+    async makeSureYouIsSet(){
+        let inter = setInterval(() => {
+            this.client.move('up')
+            this.client.move('down')
+            this.client.move('left')
+            this.client.move('right')
+            if (this.id !== undefined){
+                clearInterval(inter)
+            }
+        }, 500)
     }
     print(){
         console.log('[YOU]\t', this.id, this.name, this.x, this.y, this.score)
@@ -185,11 +197,9 @@ class GameMap{
         setInterval(() => {
             if(this.agent.x !== undefined && this.agent.y !== undefined){
                 if(this.conf.parcelsViewingDistance !== undefined){
-                    let x = Math.round(this.agent.x)
-                    let y = Math.round(this.agent.y)
                     for (let i = 0; i < this.n_rows; i++){
                         for (let j = 0; j < this.n_cols; j++){
-                            if(ManhattanDistance(x, y, i, j) < this.conf.parcelsViewingDistance){
+                            if(ManhattanDistance(this.agent.x, this.agent.y, i, j) < this.conf.parcelsViewingDistance){
                                 this.matrix[i][j].lastSeen = 0
                             } else {
                                 this.matrix[i][j].lastSeen += 1
@@ -198,7 +208,7 @@ class GameMap{
                     }
                 }
             }
-        }, 100)
+        }, 300)
     }
     print(){
         console.log('\n-------[MAP]-------')
@@ -209,13 +219,28 @@ class GameMap{
                     out += '  '
                 } else {
                     out += this.matrix[row][col].type + ' '
-                    // out += this.matrix[row][col].lastSeen + ' '
                 }
             }
             out += '\n'
         }
         console.log(out)
         console.log('-------------------\n')
+        setInterval(() => {
+            console.log('\n-------[LAST SEEN]-------')
+            let out = ''
+            for (let col = this.n_cols-1; col >= 0; col--){
+                for (let row = 0; row < this.n_rows; row++){
+                    if(this.matrix[row][col].type === 0){
+                        out += '  '
+                    } else {
+                        out += this.matrix[row][col].lastSeen + ' '
+                    }
+                }
+                out += '\n'
+            }
+            console.log(out)
+            console.log('-------------------\n')
+        }, 500)
     }
     getMatrix(){
         return this.matrix
@@ -251,7 +276,9 @@ class Agents{
         this.client.onAgentsSensing(data => {
             this.setAllAgentsNotVisible()
             for (const agent of data){
-                this.add(new Agent(agent.id, agent.name, Math.round(agent.x), Math.round(agent.y), agent.score))
+                if(agent.name !== 'god'){
+                    this.add(new Agent(agent.id, agent.name, Math.round(agent.x), Math.round(agent.y), agent.score))
+                }
             }
             if (this.verbose){
                 this.print()
