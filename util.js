@@ -299,7 +299,7 @@ async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, domai
             // console.log(problem.toPddlString());
             tmpPlan = translatePddl(await onlineSolver(domain,problem.toPddlString()))
         } catch (error) {
-            console.log(error);
+            // console.log(error);
             return [['error'], false]
         }
     }
