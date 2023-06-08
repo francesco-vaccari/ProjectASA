@@ -120,78 +120,22 @@ More precisely, the domain is composed by:
 
 In the move action we avoid to put the precondition \emph{cell from\_x\_y} because we assume that the starting point of the plan taken from the intentions is a cell. After that, thanks to the combination of the precondition \emph{cell to\_x\_y} and the effect \emph{in to\_x\_y} we know that all the subsequently objects are cells.
 
-Here is the domain description just described:
-\begin{verbatim}
-;; domain file: domain.pddl
-(define (domain default)
-    (:requirements :strips)
-    (:predicates
-        (cell ?x_y)
-        (near ?x_y ?x_y)
-        (in ?x_y)
-    )
-    
-    (:action move
-        :parameters (?from_x_y ?to_x_y)
-        :precondition (and (in ?from_x_y) (cell ?to_x_y) (near ?from_x_y ?to_x_y))
-        :effect (and (in ?to_x_y) (not (in ?from_x_y)))
-    )
-)
-\end{verbatim}
-
 \subsubsection{Problem description}
 
 The problem description is created in two different phases.
-First of all, when the map is initialized, we visit the matrix and for each cell that isn't a wall we identify it as \emph{c\_x\_y}, where \emph{x} and \emph{y} are its coordinates, and declare (i.e., add the proper objects and put the proper predicate in the \emph{init} section) that it is a cell (i.e., \emph{cell c\_x\_y}) and, for every neighboring cell (identified with the same notation) that is not a wall, we sign that they are close (i.e., \emph{near c\_x\_y c\_\(x_1\)\_\(y_1\)}).
-Then, when we have to compute a plan, we look at what cell \emph{c\_x\_y} the other officers are in and we treat each of them as walls (i.e., \emph{(not (cell c\_x\_y))}). After that, we declare in which cell \emph{c\_x\_y} the agent is (i.e., \emph{in c\_x\_y}) and we set the target cell \emph{c\_\(x_1\)\_\(y_1\)}, taken from the intentions as the goal of the plan (i.e., \emph{in c\_\(x_1\)\_\(y_1\)}).\\
+First of all, when the map is initialized, we visit the matrix and for each cell that isn't a wall we identify it as \emph{c\_x\_y}, where \emph{x} and \emph{y} are its coordinates, and declare (i.e., add the proper objects and put the proper predicate in the \emph{init} section) that it is a cell (i.e., \emph{cell c\_x\_y}) and, for every neighboring cell (identified with the same notation) that is not a wall, we sign that they are close (i.e., \emph{near c\_x\_y c\_\(x_1\)\_\(y_1\)}).\\
+Then, when we have to compute a plan, we look at what cell \emph{c\_x\_y} the other agents are in and we treat each of them as walls (i.e., \emph{(not (cell c\_x\_y))}). After that, we declare in which cell \emph{c\_x\_y} the agent is (i.e., \emph{in c\_x\_y}) and we set the target cell \emph{c\_\(x_1\)\_\(y_1\)}, taken from the intentions as the goal of the plan (i.e., \emph{in c\_\(x_1\)\_\(y_1\)}).\\
 These two actions are performed always taking the problem description of the map described before and updating it at the current situation as just described.
 
-\subsubsection{PDDL example}
+\subsubsection{Implementation}
 
-Consider a situation like this:
-%Photo
-
-The problem description is created is as follows:
-\begin{verbatim}
-(define (problem BFS)
-    (:domain deliveroo)
-    (:objects c_0_0 c_0_1 c_0_2 c_0_3 c_1_1 c_1_2 c_2_0 c_2_1 c_2_2 c_2_3 c_3_0)
-    (:init 
-        (cell c_0_0) (cell c_0_1) (cell c_0_2) (cell c_0_3)
-        (cell c_1_1) (cell c_1_2)
-        (cell c_2_0) (cell c_2_1) (cell c_2_2) (cell c_2_3)
-        (cell c_3_0)
-        (near c_0_0 c_0_1)
-        (near c_0_1 c_0_0) (near c_0_1 c_1_1) (near c_0_1 c_0_2)
-        (near c_0_2 c_0_1) (near c_0_2 c_1_2) (near c_0_2 c_0_3)
-        (near c_0_3 c_0_2)
-        (near c_1_1 c_0_1) (near c_1_1 c_2_1) (near c_1_1 c_1_2)
-        (near c_1_2 c_0_2) (near c_1_2 c_1_1) (near c_1_2 c_2_2)
-        (near c_2_0 c_3_0) (near c_2_0 c_2_1)
-        (near c_2_1 c_1_1) (near c_2_1 c_2_0) (near c_2_1 c_2_2)
-        (near c_2_2 c_1_2) (near c_2_2 c_2_1) (near c_2_2 c_2_3)
-        (near c_2_3 c_2_2)
-        (near c_3_0 c_2_0)
-        (in c_0_3))
-    (:goal (in c_3_0))
-)
-\end{verbatim}
-
-And the plan that is created is:
-\begin{verbatim}
-(move c_0_3 c_0_2) -> down
-(move c_0_2 c_1_2) -> right
-(move c_1_2 c_2_2) -> right
-(move c_2_2 c_2_1) -> down
-(move c_2_1 c_2_0) -> down
-(move c_2_0 c_3_0) -> right
-\end{verbatim}
-
-\subsubsection{Considerations}
+The planner is executed as many time as possible. In fact, there are "threads" of the program that set up the targets and, when the agent is still, a the procedure \emph{pddlBFS} is called and the respective plans are computed.\\
 
 After the planner has computed the plan we translate it in the language that the agent can understand. In fact, we parse the coordinates contained into the objects \emph{from\_x\_y} and \emph{to\_x\_y} and compute if the movement corresponds to \emph{up}, \emph{down}, \emph{left} or \emph{right}. After that we append to the plan the intention \emph{pickup} or \emph{putdown} computed before.\\
 
-Anyway, the choice to assign to the planner "only" the BFS task relies on two factors.
+\subsubsection{Considerations}
+
+The choice to assign to the planner "only" the BFS task relies on two factors.
 \begin{itemize}
     \item The first one is regards the complexity of PDDL solver. In fact, since it is exponential in the number of actions and polynomial in the number of states, reducing the number of actions to only one (the move action) we have reduced the overall complexity. In this way the latency is considerably reduced, since the major complexity of the solver is simplified, and the remaining latency are the one given by the polyomial part of the solver algorithm and the one of the network
     \item The second one take into consideration how the PDDL planner works. Indeed, considering that starting from the starting cell (initial state) and moving through the nearby cells (action move) until it reaches the target cell (goal), the first plan found (i.e, the shortest) coincides with the shortest path bewteen the starting and the target cell
@@ -247,9 +191,8 @@ Everything else is the same except with shared information.
 
 \subsection{Planning}
 
-
-
-
+In this multi-agent version the PDDL planning strategy is basically the same as the single-agent one. The parts that have been changed relies on the fact that now the agent has also to interact with another ally. More precisely, after a communication with the other allied agent and based on the intention and the target, now the planner has to create also plans designed to makes exchanges of parcels and blocking strategies to avoid that the enemies gain more points. This is done through various combination of the PDDL BFS used in the single-agent version.\\
+Moreover, because of the increase in code complexity due to the increase in intentions to be handled, the planner now isn't called as much as possible, but only when the target (so the intentions) changes or after a certain amount of time.
 
 \pagebreak
 
