@@ -171,8 +171,8 @@ Consider this situation of the map: [0 wall, 1 free cell, 4 agent]
         0 ->
         | [1, 1, 1, 1],
         v [0, 4, 1, 0],
-            [1, 1, 1, 1],
-            [1, 0, 0, 0]
+          [1, 1, 1, 1],
+          [1, 0, 0, 0]
     ]
 \end{verbatim}
 
@@ -224,7 +224,7 @@ The choice to assign to the planner "only" the BFS task relies on two factors.
 
 Since the online solver adds a latency due to the network latency we created an offline version of the BFS method that works completely synchronously with the code and reduce considerably the time taken by the planner to compute the plan.
 
-\pagebreak
+%\pagebreak
 
 \section{Multi-Agent Architecture}
 
@@ -278,8 +278,6 @@ When these four conditions are together satisfied each agent picks the closest d
 
 In this multi-agent version the PDDL planning strategy is basically the same as the single-agent one. The parts that have been changed relies on the fact that now the agent has also to interact with another ally. More precisely, after a communication with the other allied agent and based on the intention and the target, now the planner has to create also plans designed to makes exchanges of parcels and blocking strategies to avoid that the enemies gain more points. This is done through various combination of the PDDL BFS used in the single-agent version.\\
 Moreover, because of the increase in code complexity due to the increase in intentions to be handled, the planner now isn't called as much as possible, but only when the target (so the intentions) changes or after a certain amount of time.
-
-\pagebreak
 
 %\bibliographystyle{abbrv}
 % \bibliography{references}  % need to put bibtex references in references.bib
