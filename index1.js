@@ -8,6 +8,9 @@ var control = {
     ready: true
 }
 
+// Next all the belief sets and the information about the environment is initialized
+// Also the communication and communication handler are initialized
+// Changing the values in the classes intialization from false to true will enable the verbose mode of that class
 const client = new DeliverooApi( config.host, config.token )
 const conf = new Conf(client, false)
 const comm = new Communication(client, 'one', false)
@@ -27,15 +30,15 @@ const commHandler = new CommunicationHandler(comm, agent, otherAgent, map, thisA
 var plan = []
 var action = undefined
 
-
+// Main control loop, gets the plan from the planner and executes it
 async function agentControlLoop(){
     while(true){
-        // plan = planner.getPlan()
-        plan = planner.getPddlPlan()
-        if(control.ready && plan.length > 0){
+        // plan = planner.getPlan() // uncomment this line and comment the next one to use the BFS planner
+        plan = planner.getPddlPlan() // obtains the plan from the PDDL planner
+        if(control.ready && plan.length > 0){ // if the player is ready to make a move and there is a plan
             control.ready = false
-            action = plan[0]
-            switch (action) {
+            action = plan[0] // get first action in the plan
+            switch (action) { // execute action
                 case 'up':
                 case 'down':
                 case 'left':
@@ -58,7 +61,7 @@ async function agentControlLoop(){
                     control.ready = true
                     break;
             }
-            plan.shift()
+            plan.shift() // remove action from plan
         }
         await new Promise(res => setImmediate(res))
     }

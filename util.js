@@ -20,7 +20,7 @@ class Cell{
     }
 }
 
-function computeChild(child, map, explored, queue, agentsMap){
+function computeChild(child, map, explored, queue, agentsMap){ // checks if a child is valid and if it is not already in the explored set or in the queue
     if(child.x >= 0 && child.y >= 0 && child.x < map.getNRows() && child.y < map.getNCols() && map.matrix[child.x][child.y].type !== 0 && agentsMap[child.x][child.y] !== 1){
         let already_explored = false
         explored.forEach((cell) => {
@@ -39,7 +39,7 @@ function computeChild(child, map, explored, queue, agentsMap){
     return false
 }
 
-function PlanBFS(start, goal, explored){
+function PlanBFS(start, goal, explored){ // computes the plan from the explored set
     let plan = []
     let current = new Cell(goal.x, goal.y)
     explored.forEach((cell) => {
@@ -72,7 +72,8 @@ function PlanBFS(start, goal, explored){
     return plan.reverse()
 }
 
-function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, throughAgent=false){
+function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, throughAgent=false){ // computes the plan from the start to the goal
+    // the throughAgent parameter is used to tell the algorithm to not consider the other ally agent as an obstacle
     let agentsMap = [] // 0 = free, 1 = enemy, 2 = friend other agent
     for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])
@@ -151,6 +152,8 @@ function BFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, throughAgent=fa
 }
 
 function PathLengthBFS(sx, sy, ex, ey, map, agents, thisAgent=new OtherAgent(false), otherAgent=new OtherAgent(false), throughAgent=false){
+    // return the length of the path using BFS
+    // the throughAgent parameter is used to tell the algorithm to not consider the other ally agent as an obstacle
     let agentsMap = []
     for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])
@@ -242,7 +245,7 @@ function readFile ( path ) {
 
 }
 
-function translatePddl(pddlPlan) {
+function translatePddl(pddlPlan) { // convert the plan obtained by the solver into a series of Deliveroo.js actions
     let plan = []
     let from, to;
     if (pddlPlan != undefined) {
@@ -267,7 +270,7 @@ function translatePddl(pddlPlan) {
     return plan
 }
 
-async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, domain, throughAgent=false) {
+async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, domain, throughAgent=false) { // create an updated version of this.mapBeliefset and compute a BFS using the onlineSolver
 
     let tmpBeliefset,problem
 
@@ -275,10 +278,10 @@ async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, domai
 
     if (ex != sx || ey != sy) {
         tmpBeliefset = new Beliefset()
-        for (const entry of map.mapBeliefset.entries) {
+        for (const entry of map.mapBeliefset.entries) { // create a copy of this.mapBeliefset
             tmpBeliefset.declare(entry[0])
         }
-        for (const agent of agents.getMap()){
+        for (const agent of agents.getMap()){ // consider the other agents as walls
             if(agent[1].id !== thisAgent.id){
                 if(agent[1].id === otherAgent.id){
                     if(!throughAgent) {
@@ -289,7 +292,7 @@ async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, domai
                 }
             }
         }
-        tmpBeliefset.declare("in c_" + sx + "_" + sy)
+        tmpBeliefset.declare("in c_" + sx + "_" + sy) // set the actual agent position
         problem = new PddlProblem("BFS",
             tmpBeliefset.objects.join(' '),
             tmpBeliefset.toPddlString(),
@@ -297,7 +300,7 @@ async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, otherAgent, domai
         try {
             //console.log("a",sx, sy, ex, ey);
             // console.log(problem.toPddlString());
-            tmpPlan = translatePddl(await onlineSolver(domain,problem.toPddlString()))
+            tmpPlan = translatePddl(await onlineSolver(domain,problem.toPddlString())) // compute a plan and translate it
         } catch (error) {
             // console.log(error);
             return [['error'], false]

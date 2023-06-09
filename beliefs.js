@@ -1,17 +1,17 @@
 import { Beliefset } from '@unitn-asa/pddl-client'
 import { ManhattanDistance } from './util.js'
 
-class Conf{
+class Conf{ // information about the environment, like the viewing distance of the agents
     constructor(client, verbose=false){
         this.agentsViewingDistance = undefined
         this.parcelsViewingDistance = undefined
         this.decayingTime = undefined
         this.verbose = verbose
-        client.onConfig(data => {
-            this.agentsViewingDistance = data.AGENTS_OBSERVATION_DISTANCE
-            this.parcelsViewingDistance = data.PARCELS_OBSERVATION_DISTANCE
+        client.onConfig(data => { // when the configuration is received
+            this.agentsViewingDistance = data.AGENTS_OBSERVATION_DISTANCE // set the viewing distance of the agents
+            this.parcelsViewingDistance = data.PARCELS_OBSERVATION_DISTANCE // set the viewing distance of the parcels
             if(data.PARCEL_DECADING_INTERVAL != 'infinite'){
-                this.decayingTime = parseInt(data.PARCEL_DECADING_INTERVAL.slice(0, -1)) * 1000
+                this.decayingTime = parseInt(data.PARCEL_DECADING_INTERVAL.slice(0, -1)) * 1000 // set the decaying time of the parcels
             } else {
                 this.decayingTime = 0
             }
@@ -22,24 +22,25 @@ class Conf{
     }
 }
 
-class You{
+class You{ // belief set of the agent itself
     constructor(client, comm, verbose=false){
         this.client = client
         this.comm = comm
         this.verbose = verbose
         this.id = undefined
-        this.client.onYou(data => {
+        this.client.onYou(data => { // every time the agent moves the information is updated
             this.id = data.id
             this.name = data.name
-            this.x = Math.round(data.x)
+            this.x = Math.round(data.x) // rounding the coordinates from 0.6 or 0.4 to the correct next value to handle movements
             this.y = Math.round(data.y)
             this.score = data.score
-            this.comm.say(this.createJSON())
+            this.comm.say(this.createJSON()) // tell to the other the information about this agent
             if(this.verbose){
                 this.print()
             }
         })
-        this.makeSureYouIsSet()
+        // sometimes the first onYou that should be received on connection is not catched in time
+        this.makeSureYouIsSet() // this is a workaround to make sure that the agent is initialized
         
     }
     createJSON(){
@@ -52,7 +53,7 @@ class You{
             score: this.score
         })
     }
-    async makeSureYouIsSet(){
+    async makeSureYouIsSet(){ // move randomly until the information is initialized
         let inter = setInterval(() => {
             this.client.move('up')
             this.client.move('down')
@@ -68,14 +69,14 @@ class You{
     }
 }
 
-class Parcel{
+class Parcel{ // representation of a parcel
     constructor( id, x, y, carriedBy, reward){
         this.id = id
         this.x = x
         this.y = y
         this.carriedBy = carriedBy
         this.reward = reward
-        this.visible = true
+        this.visible = true // if the parcel is visible or not
     }
 
     print(){
@@ -83,7 +84,7 @@ class Parcel{
     }
 }
 
-class ThisAgentParcels{
+class ThisAgentParcels{ // this is the old belief set for parcels in the single-agent case, now is part of the joint complete parcels belief set
     constructor(client, parcels, conf, agent, comm, verbose=false){
         this.client = client
         this.parcels = parcels
@@ -91,18 +92,23 @@ class ThisAgentParcels{
         this.agent = agent
         this.comm = comm
         this.verbose = verbose
-        this.map = new Map()
-        this.startDecay()
-        this.client.onParcelsSensing(data => {
-            this.setAllParcelsNotVisible()
-            for(const parcel of data){
+        this.map = new Map() // map of parcels
+        this.startDecay() // tracks decay for parcels stored
+        this.client.onParcelsSensing(data => { // when an update of parcel is received
+            this.setAllParcelsNotVisible() // set all parcels not visible
+            for(const parcel of data){ // adds new parcels and updates the old ones
                 this.add(new Parcel(parcel.id, Math.round(parcel.x), Math.round(parcel.y), parcel.carriedBy, parcel.reward))
             }
-            this.deleteInconsistentParcels()
-            this.comm.say(this.createJSON())
+            // the next function handles two problems:
+            // 1) a parcel which is not visible is moved by another agent
+            // 2) after the agent delivers some parcels, they are set to not visible, but they are still in the parcels list
+            this.deleteInconsistentParcels() // corrects the problems above
+            this.comm.say(this.createJSON()) // when this list of parcels is updated, tell the updated list to the other agent
             if(this.verbose){
                 this.print()
             }
+            // this.parcels is the complete joint belief set of parcels which uses the list of parcels of this agent 
+            // and the list of parcels of the other agent
             this.parcels.setMapOfThisAgent(this.map)
         })
     }
@@ -110,13 +116,13 @@ class ThisAgentParcels{
         return JSON.stringify({belief: 'PARCELS', map: Array.from(this.map)})
         
     }
-    startDecay(){
+    startDecay(){ // updates the reward of parcels according to the decaying time
         let once = false
-        this.client.onParcelsSensing(() => {
+        this.client.onParcelsSensing(() => { // starts decaying on sync with the parcels update (and so on sync with the server)
             if(!once){
-                if(this.conf.decayingTime != undefined){
+                if(this.conf.decayingTime != undefined){ // if the decay time is set
                     once = true
-                    if(this.conf.decayingTime != 0){
+                    if(this.conf.decayingTime != 0){ // if the decay time is not infinite
                         setInterval(() => {
                             for(const parcel of this.map){
                                 parcel[1].reward -= 1
@@ -125,14 +131,14 @@ class ThisAgentParcels{
                     }
                 }
             }
-            for(const parcel of this.map){
+            for(const parcel of this.map){ // delete parcels with reward < 1
                 if(parcel[1].reward < 1){
                     this.map.delete(parcel[0])
                 }
             }
         })
     }
-    deleteInconsistentParcels(){
+    deleteInconsistentParcels(){ // when a parcel is not visible, but is in the viewing distance, it is removed from the parcels list
         if(this.conf.parcelsViewingDistance != undefined){
             if(this.agent.x != undefined && this.agent.y != undefined){
                 for(const parcel of this.map){
@@ -149,7 +155,7 @@ class ThisAgentParcels{
             parcel[1].visible = false
         }
     }
-    add(parcel){
+    add(parcel){ // adds new parcels and updates values of the existing ones
         if(this.map.has(parcel.id)){
             this.map.get(parcel.id).x = parcel.x
             this.map.get(parcel.id).y = parcel.y
@@ -175,12 +181,12 @@ class ThisAgentParcels{
     }
 }
 
-class Cell{
+class Cell{ // representation of a cell in the map
     constructor(x, y, type){
         this.x = x
         this.y = y
-        this.type = type //0 wall, 1 normal, 2 delivery, 3 spawn
-        this.lastSeen = 0
+        this.type = type // describes the type of the cell: 0 wall, 1 normal, 2 delivery, 3 spawn
+        this.lastSeen = 0 // attributed used for the idle/searching movement, lower value means that the cell was seen more recently
     }
 }
 
@@ -193,12 +199,12 @@ class GameMap{
         this.verbose = verbose
         this.n_rows = undefined
         this.n_cols = undefined
-        this.matrix = []
-        this.mapBeliefset = new Beliefset()
-        this.client.onMap((width, height, cells) => {
+        this.matrix = [] // the map is seen as a matrix of cells
+        this.mapBeliefset = new Beliefset() // the map is seen as a PDDL beliefset (objects + init). It is encoded like an undirected graph
+        this.client.onMap((width, height, cells) => { // received after connection to the server only once
             this.n_rows = width
             this.n_cols = height
-            for (let i = 0; i < this.n_rows; i++){
+            for (let i = 0; i < this.n_rows; i++){ // initialization of the matrix
                 this.matrix.push([])
                 for (let j = 0; j < this.n_cols; j++){
                     this.matrix[i].push(new Cell(i, j, 0))
@@ -213,17 +219,17 @@ class GameMap{
                 } else {
                     type = 1
                 }
-                this.matrix[cell.x][cell.y].type = type
+                this.matrix[cell.x][cell.y].type = type // set the type of each cell in the matrix
             }
-            this.initializeOnlineBeliefset(cells)
+            this.initializeOnlineBeliefset(cells) // initialize this.mapBeliefset
             if(this.verbose){
                 this.print()
                 this.printLastSeen()
             }
-            this.startTrackingSeenCells()
+            this.startTrackingSeenCells() // starts updating the lastSeen attribute of each cell
         })
     }
-    startTrackingSeenCells(){
+    startTrackingSeenCells(){ // updates the lastSeen attribute of each cell using an interval
         setInterval(() => {
             if(this.agent.x !== undefined && this.agent.y !== undefined){
                 if(this.conf.parcelsViewingDistance !== undefined){
@@ -231,7 +237,7 @@ class GameMap{
                         for (let j = 0; j < this.n_cols; j++){
                             if(this.matrix[i][j].type === 3){
                                 if(ManhattanDistance(this.agent.x, this.agent.y, i, j) < this.conf.parcelsViewingDistance){
-                                    this.comm.say(this.createJSON(i, j))
+                                    this.comm.say(this.createJSON(i, j)) // signals to the other agent to reset the attribute lastSeen of cell i, j
                                     this.matrix[i][j].lastSeen = 0
                                 } else {
                                     this.matrix[i][j].lastSeen += 1
@@ -243,7 +249,7 @@ class GameMap{
             }
         }, 300)
     }
-    initializeOnlineBeliefset() {
+    initializeOnlineBeliefset() { // take this.matrix and encode it into an undirected graph in the mapBeliefset
 
         let tmpCellArray, tmpCell
 
@@ -321,39 +327,40 @@ class GameMap{
     }
 }
 
-class Agent{
+class Agent{ // class that represents an agent
     constructor(id, name, x, y, score, visible=true){
         this.id = id
         this.name = name
         this.x = x
         this.y = y
         this.score = score
-        this.visible = visible
+        this.visible = visible // if the agent is visible or not
     }
     print(){
         console.log('[AGENT]\t', this.id, this.name, this.x, this.y, this.score, this.visible)
     }
 }
 
-class ThisAgentAgents{
+class ThisAgentAgents{// this is the old belief set of agents, now it is used as a part of the complete joint belief set of agents
     constructor(client, agents, comm, verbose=false){
         this.client = client
         this.agents = agents
         this.comm = comm
         this.verbose = verbose
-        this.map = new Map()
-        this.forgetAgentsAfterNSeconds(3)
-        this.client.onAgentsSensing(data => {
-            this.setAllAgentsNotVisible()
-            for (const agent of data){
+        this.map = new Map() // map of agents
+        this.forgetAgentsAfterNSeconds(3) // after 3 seconds, if an agent is not visible, it is removed from the agents list
+        this.client.onAgentsSensing(data => { // when the agent receives an update of agents information
+            this.setAllAgentsNotVisible() // sets all agents as not visible
+            for (const agent of data){ // for each agent in the update adds new agents or updates the values of the existing ones
                 if(agent.name !== 'god'){
                     this.add(new Agent(agent.id, agent.name, Math.round(agent.x), Math.round(agent.y), agent.score))
                 }
             }
-            this.comm.say(this.createJSON())
+            this.comm.say(this.createJSON()) // commmunicate to the other agent the updated belief set
             if (this.verbose){
                 this.print()
             }
+            // this.agents is the complete joint belief set of agents
             this.agents.setMapOfThisAgent(this.map)
         })
     }
@@ -365,7 +372,7 @@ class ThisAgentAgents{
             agent[1].visible = false
         }
     }
-    forgetAgentsAfterNSeconds(n){
+    forgetAgentsAfterNSeconds(n){ // after a number of seconds all agents not visible are removed
         setInterval(() => {
             for (const agent of this.map){
                 if(!agent[1].visible){
@@ -374,7 +381,7 @@ class ThisAgentAgents{
             }
         }, n*1000)
     }
-    add(agent){
+    add(agent){ // adds a new agent or updates the values of an existing one
         if(this.map.has(agent.id)){
             this.map.get(agent.id).x = agent.x
             this.map.get(agent.id).y = agent.y
@@ -396,32 +403,32 @@ class ThisAgentAgents{
     }
 }
 
-class Target{
+class Target{ // class that represents a target/intention, the same used in the planner
     constructor(x, y, intention='error', score=0){
         this.x = x
         this.y = y
-        this.intention = intention
-        this.score = score
+        this.intention = intention // intention can be 'error', 'pickup', 'putdown', 'exchange', 'block', 'idle
+        this.score = score // score gin by the utilities functions in the planner
     }
 }
 
-class OtherAgent{
-    constructor(verbose=false){
+class OtherAgent{ // this is the belief set that contains the information about the other agent
+    constructor(verbose=false){ // all the values are updated through messages received from the other agent
         this.verbose = verbose
         this.id = undefined
         this.name = undefined
-        this.x = undefined
+        this.x = undefined // coordinates
         this.y = undefined
-        this.score = undefined
-        this.target = new Target(undefined, undefined)
-        this.scoreParcelsCarried = 0
+        this.score = undefined // current score
+        this.target = new Target(undefined, undefined) // current target/intention of the other agent
+        this.scoreParcelsCarried = 0 // total score of parcels currently being carried by the other agent
         if(this.verbose){
             setInterval(() => {
                 this.print()
             }, 200)
         }
     }
-    set(json){
+    set(json){ // function used in the communication handler
         this.id = json.id
         this.name = json.name
         this.x = json.x
@@ -434,12 +441,15 @@ class OtherAgent{
 }
 
 class OtherAgentAgents{
+    // this belief set is a copy of the belief set of the other agent
+    // updated when a specific message is received
+    // used in the complete joint belief set
     constructor(agents, verbose=false){
         this.verbose = verbose
         this.agents = agents
         this.map = new Map()
     }
-    clearAndAddAll(agents){
+    clearAndAddAll(agents){ // method used in the communication handler when a specific message is received, updates the belief set
         this.map.clear()
         for(const agent of agents){
             this.map.set(agent[0], agent[1])
@@ -447,7 +457,7 @@ class OtherAgentAgents{
         if(this.verbose){
             this.print()
         }
-        this.agents.setMapOfOtherAgent(this.map)
+        this.agents.setMapOfOtherAgent(this.map) // this.agents is the complete joint belief set of agents
     }
     print(){
         console.log('\n///////[OTHER AGENT LIST]///////')
@@ -459,12 +469,15 @@ class OtherAgentAgents{
 }
 
 class OtherAgentParcels{
+    // this belief set is a copy of the belief set of the other agent
+    // updated when a specific message is received
+    // used in the complete joint belief set
     constructor(parcels, verbose=false){
         this.verbose = verbose
         this.parcels = parcels
         this.map = new Map()
     }
-    clearAndAddAll(parcels){
+    clearAndAddAll(parcels){  // method used in the communication handler when a specific message is received, updates the belief set
         this.map.clear()
         for(const parcel of parcels){
             this.map.set(parcel[0], parcel[1])
@@ -472,7 +485,7 @@ class OtherAgentParcels{
         if(this.verbose){
             this.print()
         }
-        this.parcels.setMapOfOtherAgent(this.map)
+        this.parcels.setMapOfOtherAgent(this.map) // this.parcels is the complete joint belief set of agents
     }
     print(){
         console.log('\n///////[OTHER AGENT PARCEL LIST]///////')
@@ -483,15 +496,15 @@ class OtherAgentParcels{
     }
 }
 
-class Parcels{
+class Parcels{ // complete joint belief set of parcels
     constructor(conf, thisAgent, otherAgent, verbose=false){
         this.verbose = verbose
         this.thisAgent = thisAgent
         this.otherAgent = otherAgent
         this.conf = conf
-        this.parcels = new Map()
-        this.mapOfThisAgent = new Map()
-        this.mapOfOtherAgent = new Map()
+        this.parcels = new Map() // belief set used for planning and decision making, contains the full information of both agents
+        this.mapOfThisAgent = new Map() // partial belief set, contains only the information known by this agent
+        this.mapOfOtherAgent = new Map() // partial belief set, contains only the information known by the other agent
     }
     setMapOfThisAgent(map){
         this.mapOfThisAgent = map
@@ -501,12 +514,12 @@ class Parcels{
         this.mapOfOtherAgent = map
         this.joinMaps()
     }
-    joinMaps(){
-        this.parcels.clear()
-        for(const parcel of this.mapOfThisAgent){
+    joinMaps(){ // when one of the two partial belief sets is updated this function is called to update the full belief set
+        this.parcels.clear() // empty the list of parcels
+        for(const parcel of this.mapOfThisAgent){ // then first insert the parcels seen by this agent
             this.parcels.set(parcel[0], parcel[1])
         }
-        for(const parcel of this.mapOfOtherAgent){
+        for(const parcel of this.mapOfOtherAgent){ // then insert the parcels seen by the other agent making sure to create no inconsistencies
             if(!this.parcels.has(parcel[0])){
                 this.parcels.set(parcel[0], parcel[1])
             } else {
@@ -531,15 +544,15 @@ class Parcels{
     }
 }
 
-class Agents{
+class Agents{ // complete joint belief set of agents
     constructor(conf, agent, otherAgent, verbose=false){
         this.verbose = verbose
         this.agent = agent
         this.otherAgent = otherAgent
         this.conf = conf
-        this.agents = new Map()
-        this.mapOfThisAgent = new Map()
-        this.mapOfOtherAgent = new Map()
+        this.agents = new Map() // belief set used for planning and decision making, contains the full information of both agents
+        this.mapOfThisAgent = new Map() // partial belief set, contains only the information known by this agent
+        this.mapOfOtherAgent = new Map() // partial belief set, contains only the information known by the other agent
     }
     setMapOfThisAgent(map){
         this.mapOfThisAgent = map
@@ -549,21 +562,21 @@ class Agents{
         this.mapOfOtherAgent = map
         this.joinMaps()
     }
-    joinMaps(){
-        this.agents.clear()
-        if(this.agent.id !== undefined){
+    joinMaps(){ // when one of the two partial belief sets is updated this function is called to update the full belief set
+        this.agents.clear() // empty the list of agents
+        if(this.agent.id !== undefined){ // insert the agent itself in the belief set (make sure it is not undefined)
             this.agents.set(this.agent.id, new Agent(this.agent.id, this.agent.name, this.agent.x, this.agent.y, this.agent.score, true))
         }
-        if(this.otherAgent.id !== undefined){
+        if(this.otherAgent.id !== undefined){ // insert the other agent in the belief set (make sure it is not undefined)
             this.agents.set(this.otherAgent.id, new Agent(this.otherAgent.id, this.otherAgent.name, this.otherAgent.x, this.otherAgent.y, this.otherAgent.score, true))
         }
 
-        for(const agent of this.mapOfThisAgent){
+        for(const agent of this.mapOfThisAgent){ // first insert the agents seen by this agent
             if(agent[0] !== this.agent.id && agent[0] !== this.otherAgent.id){
                 this.agents.set(agent[0], agent[1])
             }
         }
-        for(const agent of this.mapOfOtherAgent){
+        for(const agent of this.mapOfOtherAgent){ // then insert the agents seen by the other agent making sure to create no inconsistencies
             if(agent[0] !== this.agent.id && agent[0] !== this.otherAgent.id){
                 if(!this.agents.has(agent[0])){
                     this.agents.set(agent[0], agent[1])
@@ -591,20 +604,20 @@ class Agents{
     }
 }
 
-class Enemies{
+class Enemies{ // belief set specifically implemented for the blocking strategy
     constructor(client, thisAgent, otherAgent, agents, verbose=false){
         this.client = client
         this.verbose = verbose
         this.thisAgent = thisAgent
         this.otherAgent = otherAgent
         this.agents = agents
-        this.initialized = false
+        this.initialized = false // says whether both enemies were found and initialized
 
-        this.enemyOne = new Agent(undefined, undefined, undefined, undefined, undefined, false)
+        this.enemyOne = new Agent(undefined, undefined, undefined, undefined, undefined, false) // enemy agents 1 and 2
         this.enemyTwo = new Agent(undefined, undefined, undefined, undefined, undefined, false)
 
-        this.initializeEnemies()
-        this.updateEnemies()
+        this.initializeEnemies() // search in the agents belief set for agents that are not this agent or the other agent
+        this.updateEnemies() // keep track of enemies updating their position, score and visibility
         
         if(this.verbose){
             setInterval(() => {
@@ -612,16 +625,16 @@ class Enemies{
             }, 200)
         }
     }
-    async initializeEnemies(){
-        while(!this.initialized){
-            if(this.thisAgent.id !== undefined && this.otherAgent.id !== undefined){
-                for(const agent of this.agents.getMap()){
-                    if(agent[0] !== this.thisAgent.id && agent[0] !== this.otherAgent.id){
-                        if(this.enemyOne.id === undefined){
-                            this.enemyOne = agent[1]
-                        } else if(this.enemyTwo.id === undefined && agent[0] !== this.enemyOne.id){
-                            this.enemyTwo = agent[1]
-                            this.initialized = true
+    async initializeEnemies(){ // search in the agents belief set for agents that are not this agent or the other agent
+        while(!this.initialized){ // while both enemies are not found
+            if(this.thisAgent.id !== undefined && this.otherAgent.id !== undefined){ // if both (our) agents are initialized
+                for(const agent of this.agents.getMap()){ // iterate through the agents belief set
+                    if(agent[0] !== this.thisAgent.id && agent[0] !== this.otherAgent.id){ // if the agent in the belief set is not ours
+                        if(this.enemyOne.id === undefined){ // if the first enemy is not initialized
+                            this.enemyOne = agent[1] // initialize it
+                        } else if(this.enemyTwo.id === undefined && agent[0] !== this.enemyOne.id){ // if the second enemy is not initialized and the agent is not the first enemy
+                            this.enemyTwo = agent[1] // initialize the second enemy
+                            this.initialized = true // both enemies are initialized
                         }
                     }
                 }
@@ -629,15 +642,15 @@ class Enemies{
             await new Promise(res => setImmediate(res))
         }
     }
-    async updateEnemies(){
+    async updateEnemies(){ // keep track of enemies updating their position, score and visibility
         while(true){
-            if(this.initialized){
-                for(const agent of this.agents.getMap()){
-                    if(agent[0] === this.enemyOne.id){
-                        this.enemyOne = agent[1]
+            if(this.initialized){ // if both enemies are initialized
+                for(const agent of this.agents.getMap()){ // iterate through the agents belief set
+                    if(agent[0] === this.enemyOne.id){ // if the agent is the first enemy
+                        this.enemyOne = agent[1] // update the first enemy
                     }
-                    if(agent[0] === this.enemyTwo.id){
-                        this.enemyTwo = agent[1]
+                    if(agent[0] === this.enemyTwo.id){ // if the agent is the second enemy
+                        this.enemyTwo = agent[1] // update the second enemy
                     }
                 }
             }
