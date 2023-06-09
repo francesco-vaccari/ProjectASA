@@ -18,7 +18,7 @@ class Cell{
     }
 }
 
-function computeChild(child, map, explored, queue, agentsMap){
+function computeChild(child, map, explored, queue, agentsMap){ // checks if a child is valid and not already explored or queued
     if(child.x >= 0 && child.y >= 0 && child.x < map.getNRows() && child.y < map.getNCols() && map.matrix[child.x][child.y].type !== 0 && agentsMap[child.x][child.y] !== 1){
         let already_explored = false
         explored.forEach((cell) => {
@@ -36,7 +36,7 @@ function computeChild(child, map, explored, queue, agentsMap){
     }
 }
 
-function PlanBFS(start, goal, explored){
+function PlanBFS(start, goal, explored){ // computes the plan from the explored cells
     let plan = []
     let current = new Cell(goal.x, goal.y)
     explored.forEach((cell) => {
@@ -80,7 +80,7 @@ function PlanBFS(start, goal, explored){
  * @returns {Array} Array of moves to perform
  */
 function BFS(sx, sy, ex, ey, map, agents){
-    let agentsMap = []
+    let agentsMap = [] // map used to make cells occupied by other agents not walkable
     for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])
         for (let j = 0; j < map.getNCols(); j++){
@@ -92,6 +92,7 @@ function BFS(sx, sy, ex, ey, map, agents){
             agentsMap[agent[1].x][agent[1].y] = 1
         }
     }
+    // normal BFS algorithm
     let goal = new Cell(ex, ey)
     let start = new Cell(sx, sy)
     let queue = []
@@ -104,10 +105,10 @@ function BFS(sx, sy, ex, ey, map, agents){
         explored.push(current)
 
         if(current.x === goal.x && current.y === goal.y){
-            return PlanBFS(start, goal, explored)
+            return PlanBFS(start, goal, explored) // returns computed from the explored set
         }
 
-        let children = []
+        let children = [] // array of children of the current cell
         if(computeChild(new Cell(current.x - 1, current.y), map, explored, queue, agentsMap)){
             children.push(new Cell(current.x - 1, current.y))
         }
@@ -121,7 +122,7 @@ function BFS(sx, sy, ex, ey, map, agents){
             children.push(new Cell(current.x, current.y + 1))
         }
 
-        children.forEach((child) => {
+        children.forEach((child) => { // adds the children to the queue with parent to reconstruct the path
             queue.push(child)
             child.parentx = current.x
             child.parenty = current.y
@@ -130,7 +131,7 @@ function BFS(sx, sy, ex, ey, map, agents){
     return ['error']
 }
 
-function PathLengthBFS(sx, sy, ex, ey, map, agents){
+function PathLengthBFS(sx, sy, ex, ey, map, agents){ // same thing of BFS, but returns only the length of the path
     let agentsMap = []
     for (let i = 0; i < map.getNRows(); i++){
         agentsMap.push([])
@@ -195,7 +196,7 @@ function readFile ( path ) {
 
 }
 
-function translatePddl(pddlPlan) {
+function translatePddl(pddlPlan) { // TODO
     let plan = []
     let from, to;
     if (pddlPlan != undefined) {
@@ -220,7 +221,7 @@ function translatePddl(pddlPlan) {
     return plan
 }
 
-async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, domain) {
+async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, domain) { // TODO
 
     let tmpBeliefset,problem
 

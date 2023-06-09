@@ -7,6 +7,8 @@ const control = {
     ready: true
 }
 
+// Next all the belief sets and the information about the environment is initialized
+// Changing the values in the classes intialization from false to true will enable the verbose mode of that class
 const client = new DeliverooApi( config.host, config.token )
 const conf = new Conf(client, false)
 const agent = new You(client, false)
@@ -19,13 +21,14 @@ const planner = new Planner(client, map, agent, parcels, agents, control, true)
 var plan = []
 var action = undefined
 
+// Main control loop, gets the plan from the planner and executes it
 async function agentControlLoop(){
     while(true){
         plan = planner.getPlan()
-        if(control.ready && plan.length > 0){
+        if(control.ready && plan.length > 0){ // if the player is ready to make a move and there is a plan
             control.ready = false
-            action = plan[0]
-            switch (action) {
+            action = plan[0] // get first action in the plan
+            switch (action) { // execute action
                 case 'up':
                 case 'down':
                 case 'left':
@@ -48,7 +51,7 @@ async function agentControlLoop(){
                     control.ready = true
                     break;
             }
-            plan.shift()
+            plan.shift() // remove action from plan
         }
         await new Promise(res => setImmediate(res))
     }
