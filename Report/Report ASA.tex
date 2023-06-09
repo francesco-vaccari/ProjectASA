@@ -235,16 +235,21 @@ Just like for the single-agent architecture, updates of each set happen asynchro
 
 
 \subsection{Intentions and Intentions Revision}
+The default behavior of both agents, where no coordination is needed, is the same of the single-agent architecture. The utility functions put in place are the same with the only exception of an if statement added in the score evaluation of cells: if a cell is already the target of the other agent, its score is set to zero. This simple feature avoids conflicts that can happen when, for example, both agents choose the same parcel to pick up. Everything else we explained for the single-agent architecture remains valid for this part, with the only difference that since the information about the environment is shared, the effectiveness of the utility functions is improved.
 
-Only change to utilities are it does not choose other agent target.
+In the multi-agent architecture we identified two major possible multi-agent intentions, identified in the code with the terms \verb|exchange| and \verb|block|.
+\begin{itemize}
+\item \textbf{Exchange}: This intention allows the agent requesting an exchange to leave the parcels on the ground so that the other agent can pick them up. This intention is necessary when only one path to a delivery cell is possible for both agents, in this case the single-agent behavior would cause the agents to become obstacles on the map. This intention is chosen only when an agent sees that in its path to a delivery cell there is the other agent to which it can request the exchange. We implemented an utility function that allows the agent that receives the request of exchange to temporarily ignore the request and finish deliver the parcels carried first. In this case, the agent requesting the exchange will move towards the other agent until it terminates its own intention. Instead, if the request is immediately accepted, both agents move towards each other and perform the exchange when at one cell of distance. All the computation is done only by the agent requesting the exchange to simplify the task of coordination, while the second agent sets its target with the messages it receives by the first agent.
+\item \textbf{Block}: This strategy consists of physically blocking the only delivery cells on the map to now allow enemies to score any more points, and thus should consist in an automatic win. This intention is triggered when the information stored in the beliefs sets satisfy three conditions:
+\begin{itemize}
+\item Our total score is greater that the opponent's total score;
+\item We see both enemy agents, this allows to have certain information about score and position on the map
+\item The path to both delivery cells for our agents is shorter than the path of enemy agents.
+\end{itemize}
+When these three conditions are together satisfied each agent picks the closest delivery cell as the target. This should result in a situation in which no team is able to deliver any cell. The computation and the checks for satisfiability of the conditions are carried on by one agent only to simplify coordination.
+\end{itemize}
 
-Explain how the exchange works, when it starts, when the other agent ignores, the fact that only one agent calculates the targets and then each agent calculates the plan. Also utility for exchange specifically for second map of second challenge.
-
-Same thing for the block, this time only one agent checks if it is possible with the shared same information.
-
-Everything else is the same except with shared information.
-
-
+ 
 \subsection{Planning}
 
 
