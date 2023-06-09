@@ -20,7 +20,7 @@ class Planner{ // in this class there is all the logic regarding choice of inten
         this.plan = [] // plan of actions
         this.target = new Target(this.agent.x, this.agent.y, 'error', 0) // target of the agent
         this.control = control
-        this.domain = "" // TODO
+        this.domain = "" // PDDL domain description
         this.startPlanning() // main loop
         if(this.verbose){
             setInterval(() => {

@@ -172,7 +172,7 @@ class GameMap{ // contains information about the map
         this.n_rows = undefined
         this.n_cols = undefined
         this.matrix = [] // the map is seen as a matrix of cells
-        this.mapBeliefset = new Beliefset() // TODO
+        this.mapBeliefset = new Beliefset() // the map is seen as a PDDL beliefset (objects + init). It is encoded like an undirected graph
         this.client.onMap((width, height, cells) => { // received after connection to the server only once
             this.n_rows = width
             this.n_cols = height
@@ -193,7 +193,7 @@ class GameMap{ // contains information about the map
                 }
                 this.matrix[cell.x][cell.y].type = type // set the type of each cell in the matrix
             }
-            this.initializeOnlineBeliefset() // TODO
+            this.initializeOnlineBeliefset() // initialize this.mapBeliefset
             if(this.verbose){
                 this.print()
             }
@@ -217,7 +217,7 @@ class GameMap{ // contains information about the map
             }
         }, 300)
     }
-    initializeOnlineBeliefset() { // TODO
+    initializeOnlineBeliefset() { // take this.matrix and encode it into an undirected graph in the mapBeliefset
 
         let tmpCellArray, tmpCell
 

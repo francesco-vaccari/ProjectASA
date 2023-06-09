@@ -196,7 +196,7 @@ function readFile ( path ) {
 
 }
 
-function translatePddl(pddlPlan) { // TODO
+function translatePddl(pddlPlan) { // convert the plan obtained by the solver into a series of Deliveroo.js actions
     let plan = []
     let from, to;
     if (pddlPlan != undefined) {
@@ -221,7 +221,7 @@ function translatePddl(pddlPlan) { // TODO
     return plan
 }
 
-async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, domain) { // TODO
+async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, domain) { // create an updated version of this.mapBeliefset and compute a BFS using the onlineSolver
 
     let tmpBeliefset,problem
 
@@ -229,15 +229,15 @@ async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, domain) { // TODO
 
     if (ex != sx || ey != sy) {
         tmpBeliefset = new Beliefset()
-        for (const entry of map.mapBeliefset.entries) {
+        for (const entry of map.mapBeliefset.entries) { // create a copy of this.mapBeliefset
             tmpBeliefset.declare(entry[0])
         }
-        for (const agent of agents.getMap()){
+        for (const agent of agents.getMap()){ // consider the other agents as walls
             if(agent[1].id !== thisAgent.id){
                 tmpBeliefset.declare("cell c_" + agent[1].x + "_" + agent[1].y,false)
             }
         }
-        tmpBeliefset.declare("in c_" + sx + "_" + sy)
+        tmpBeliefset.declare("in c_" + sx + "_" + sy) // set the actual agent position
         problem = new PddlProblem("BFS",
             tmpBeliefset.objects.join(' '),
             tmpBeliefset.toPddlString(),
@@ -245,7 +245,7 @@ async function pddlBFS(sx, sy, ex, ey, map, agents, thisAgent, domain) { // TODO
         try {
             //console.log("a",sx, sy, ex, ey);
             // console.log(problem.toPddlString());
-            tmpPlan = translatePddl(await onlineSolver(domain,problem.toPddlString()))
+            tmpPlan = translatePddl(await onlineSolver(domain,problem.toPddlString())) // compute a plan and translate it
         } catch (error) {
             // console.log(error);
             return [['error'], false]
