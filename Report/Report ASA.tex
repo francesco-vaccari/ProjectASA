@@ -35,9 +35,21 @@
 
 \section{Implementation of BDI}
 
+The objective of this project consists of developing autonomous software agents, namely a single operating agent and a pair of cooperating agents, for the Deliveroo.js game.
+To Accomplish it we created software agents based on the BDI model in order to make it possible for them to analyze the environment and act accordingly.\\
+More precisely, an agent can perceives the environment and organize those information categorizing them into different classes and creating a set of \textbf{Beliefs} (i.e., \emph{Environment properties}, \emph{Game Map}, \emph{Parcels}, the \emph{Agent} itself, the \emph{Allied Agent}, \emph{Enemy Agents}, \emph{Joint Parcels Set} and \emph{Joint Agents Set}).\\
+After that, those information are analyzed relying on some \textbf{Intention Rules} that are filtered in such a way to obtain a series of targets, categorized by coordinates, an \textbf{Intention} between \emph{idle}, \emph{pickup}, \emph{delivery}, \emph{exchange} and \emph{block} and a score.\\
+Once deliberate the target with the best score, it is took as argument by a \textbf{Planner} which computes a \textbf{Plan} composed by the series of actions (i.e. \emph{up}, \emph{down}, \emph{left}, \emph{right}, \emph{pickup} or \emph{putdown}) that the agent will perform.\\
+If it fails, the Intentions will change as a consequence and a new \textbf{Plan} will be computed. In fact, in the meanwhile the environment can change, so, a \textbf{Revision} of \textbf{Beliefs}, \textbf{Intentions} and \textbf{Plans} that fails is done when it happens.\\
+\\
+
+\begin{figure}[h]
+    \includegraphics[width=\textwidth]{images/BDI schema.png}
+    \caption{BDI schema}
+    \centering
+\end{figure}
 
 \pagebreak
-
 
 
 \section{Single-Agent Architecture}
