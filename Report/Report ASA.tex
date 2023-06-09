@@ -36,11 +36,11 @@
 \section{Implementation of BDI}
 
 The objective of this project consists of developing autonomous software agents, namely a single operating agent and a pair of cooperating agents, for the Deliveroo.js game.
-To Accomplish it we created software agents based on the BDI model in order to make it possible for them to analyze the environment and act accordingly.\\
-More precisely, an agent can perceives the environment and organize those information categorizing them into different classes and creating a set of \textbf{Beliefs} (i.e., \emph{Environment properties}, \emph{Game Map}, \emph{Parcels}, the \emph{Agent} itself, the \emph{Allied Agent}, \emph{Enemy Agents}, \emph{Joint Parcels Set} and \emph{Joint Agents Set}).\\
-After that, those information are analyzed relying on some \textbf{Intention Rules} that are filtered in such a way to obtain a series of targets, categorized by coordinates, an \textbf{Intention} between \emph{idle}, \emph{pickup}, \emph{delivery}, \emph{exchange} and \emph{block} and a score.\\
-Once deliberate the target with the best score, it is took as argument by a \textbf{Planner} which computes a \textbf{Plan} composed by the series of actions (i.e. \emph{up}, \emph{down}, \emph{left}, \emph{right}, \emph{pickup} or \emph{putdown}) that the agent will perform.\\
-If it fails, the Intentions will change as a consequence and a new \textbf{Plan} will be computed. In fact, in the meanwhile the environment can change, so, a \textbf{Revision} of \textbf{Beliefs}, \textbf{Intentions} and \textbf{Plans} that fails is done when it happens.\\
+To accomplish it we created software agents based on the BDI architecture in order to make it possible for them to analyze the environment and act accordingly.\\
+More precisely, an agent can perceive the environment and organize that information categorizing it into different classes and creating a set of \textbf{Beliefs} (i.e., \emph{Environment properties}, \emph{Game Map}, \emph{Parcels}, the \emph{Agent} itself, the \emph{Allied Agent}, \emph{Enemy Agents}, \emph{Joint Parcels Set} and \emph{Joint Agents Set}).\\
+After that, that information is analyzed relying on some \textbf{Intention Rules} that are filtered in such a way to obtain a series of targets, categorized by coordinates, an \textbf{Intention} between \emph{idle}, \emph{pickup}, \emph{delivery}, \emph{exchange} and \emph{block} and a score.\\
+Once deliberated the target with the best score, it is took as argument by a \textbf{Planner} which computes a \textbf{Plan} composed by the series of actions (i.e. \emph{up}, \emph{down}, \emph{left}, \emph{right}, \emph{pickup} or \emph{putdown}) that the agent will perform.\\
+If it fails, the intentions will change as a consequence and a new \textbf{Plan} will be computed. In fact, in the meanwhile the environment can change, so, a \textbf{Revision} of \textbf{Beliefs}, \textbf{Intentions} and \textbf{Plans} that fail is done when it happens.\\
 \\
 
 \begin{figure}[h]
@@ -76,61 +76,61 @@ For the single-agent architecture we identified 3 possible intentions:
 \end{itemize}
 
 \subsubsection{Utility Functions}
-The way the intentions are implemented is complex to handle situations in which the agent has to decide if it should deliver the parcels it is carrying or if it should change its intention to go pick up more parcels in its viewing distance. Furthermore, since there might be agents that are trying to accomplish the same ultimate goal of scoring more points, the agent has to consider wether an enemy distance to certain cells. Modeling the wanted behavior in such situations can be really challenging, and so we decided to implement a system which assigns to each cell in the map a score. These scores are asynchronously recomputed and the cell with the highest value is chosen as the target. The score is the output of an utility function which takes as input all the elements in the environment and outputs a score map using two formulas we designed: one for cell with the property of spawning parcels, and one for the cells assigned for delivery.
+The way the intentions are implemented is complex to handle situations in which the agent has to decide if it should deliver the parcels it is carrying or if it should change its intention to go pick up more parcels in its viewing distance. Furthermore, since there might be agents that are trying to accomplish the same ultimate goal of scoring more points, the agent has to consider enemies distances to certain cells. Modeling the wanted behavior in such situations can be really challenging, and so we decided to implement a system which assigns to each cell in the map a score. These scores are asynchronously recomputed and the cell with the highest value is chosen as the target. The score is the output of an utility function which takes as input all the elements in the environment and outputs a score map using two formulas we designed: one for cells with the property of spawning parcels, and one for cells assigned as delivery.
 
-Next is the formula used to compute the score for a spawning cell with coordinates $x,y$:
+Next is the formula used to compute the score for a spawning or normal cell with coordinates $x,y$:
 \begin{equation}
 score(x,y) = \left(\frac{{ParcelsRewardInCell(x,y)^{1.2}}}{{DistanceToAgent(x,y)}}\right) \cdot EnemyProximity(x,y,agents)^2
 \end{equation}
-In the formula, $ParcelsRewardInCell$ is the sum of the rewards of the parcels in the cell, while $DistanceToAgent$ is the minimum path length to to agent and $EnemyProximity$ is computed as follows:
+In the formula, $ParcelsRewardInCell$ is the sum of the rewards of the parcels in the cell, while $DistanceToAgent$ is the minimum path length to the agent. $EnemyProximity$ is computed as follows:
 \begin{equation}
 EnemyProximity(x,y,agents) = -(\frac{1}{\min_{a_{i} \in \{agents\}} Distance(x, y, a_{i}.x, a_{i}.y) +1}) + 1
 \end{equation}
-The $Distance$ function used is the Manhattan Distance. As default, when no agents are known to the agent, the value of $EnemyProximity$ is set to $1$. Otherwise, the formula outputs a value in the range $[0,1]$ that acts as a scaling factor that discourages the agent to choose parcels, even with high reward, when they are very close to enemy agents.
+The $Distance$ function used is the Manhattan Distance. As default, when no enemy agents are known, the value of $EnemyProximity$ is set to $1$. Otherwise, the formula outputs a value in the range $[0,1]$ that acts as a scaling factor that discourages the agent to choose parcels, even with high reward, when they are very close to enemy agents.
 
-And following there is the formula used for cells assigned for delivery:
+Below there is the formula used for cells assigned for delivery:
 \begin{equation}
 \frac{ParcelsRewardsCarried^{~0.8}}{DistanceToAgent(x,y)}
 \end{equation}
-The term $ParcelsRewardsCarried$ indicates the sum of the rewards of the parcels carried by the agent while $DistanceToAgent$ is the minimum path length from the agent.
+The term $ParcelsRewardsCarried$ indicates the sum of the rewards of the parcels carried by the agent while $DistanceToAgent$ is the minimum path length from the agent to the cell.
 
 Considering all the elements in the environment and combining them with distances between elements and different rewards of the parcels results in a behavior that is reactive and adapts to the frequent changes on the map. This process of computing scores is continuous and asynchronous and allows for an easy decision of the intention to choose. Since each score is related to a cell, the coordinates of the target are ready as soon as the highest score is found so that the plan can be immediately calculated. This makes it also possible to have backup targets since they are sorted in a list, this is useful in case the planner does not find a path for the first candidate target.
 
 \subsection{Planning}
 
-This task is implemented into the related and It takes as input all the elements of the beliefset (map, agents and parcels list and the current agent) and, after the intentions are computed it creates the plan that the agent is going to use.
-More precisely, the task that the solver have to solve consists into a BFS (Breadth-First Search) that:
+This task is implemented in the class \verb|Planner| and takes as input all the elements of the beliefs sets (map, agents and parcels list and the current agent) and, after the intentions are computed, it creates the plan that the agent is going to use.
+More precisely, the task that the solver has to solve consists of a BFS (Breadth-First Search) that:
 \begin{itemize}
-    \item Is performed on the game map, considered as an undirected graph, where the cells are the nodes and the proximity to other cells describe the edges
-    \item Uses the agent position as root
-    \item Ends when the shortest path to the target cell is found\\
+    \item Is performed on the game map, considered as an undirected graph, where the cells are the nodes and the proximity to other cells define the edges;
+    \item Uses the agent position as root;
+    \item Ends when the shortest path to the target cell is found.
 \end{itemize}
 
-Tho compute the plan the planner relies on an online PDDL1.2 (Planning Domain Definition Language) online solver. As the standard declare, the model of the planning problem is composed by two major parts:
+Tho compute the plan, the planner relies on an online solver for PDDL1.2 (Planning Domain Definition Language) As the standard declares, the model of the planning problem is composed by two major parts:
 \begin{enumerate}
-    \item Domain description: define the predicates that characterize the environment and the action that can be performed
-    \item Problem description: describe objects in the environment, the initial state and goal descriptions that will characterize the current plan\\
+    \item Domain description: defines the predicates that characterize the environment and the action that can be performed.
+    \item Problem description: describe objects in the environment, the initial state and goal descriptions that will characterize the current plan.
 \end{enumerate}
 
-\subsubsection{Domain description}
+\subsubsection{Domain Description}
 
-Since the tasks consists of a BFS, the domain file model the environment, composed by cells and the agent, into an undirected graph.
-More precisely, the domain is composed by:
+Since the tasks consists of a BFS, the domain file models the environment, composed by cells and the agent, into an undirected graph.
+More precisely, the domain is composed of:
 \begin{itemize}
     \item Predicates:
     \begin{itemize}
         \item \emph{cell ?x\_y}: it indicates that the object \emph{x\_y} is a cell and a node of our graph
-        \item \emph{near ?from\_x\_y ?to\_x\_y}: It models that the cell \emph{from\_x\_y} is near the cell \emph{to\_x\_y}, i.e., there is a unidirectional edge from the first to the second (in the Problem description section is explained how the graph become undirected)
+        \item \emph{near ?from\_x\_y ?to\_x\_y}: it models that the cell \emph{from\_x\_y} is near the cell \emph{to\_x\_y}, i.e., there is a unidirectional edge from the first to the second (in the Problem description section it is explained how the graph becomes undirected)
         \item \emph{in ?x\_y}: it keeps track that the agent is in the cell \emph{x\_y}. In the graph parallelism it refers to the node that the planner is visiting
     \end{itemize}
     \item Actions:
     \begin{itemize}
-        \item \emph{move}: it represents the agent movement through the map (i.e,, the graph). It takes as parameters two objects \emph{from\_x\_y} and \emph{to\_x\_y}, which respectively represent the starting and the target cell of the movement. Then it checks if the agent is in \emph{from\_x\_y} (i.e., \emph{from\_x\_y}), if the object \emph{to\_x\_y} is a cell (i.e., \emph{cell to\_x\_y}) and if the two cells \emph{from\_x\_y} and \emph{to\_x\_y} are close (i.e., \emph{near from\_x\_y to\_x\_y}).
-        After that, the effect of the action consists in moving the agent to the target cell (i.e., \emph{in to\_x\_y}) and making sure that it is different from the starting cell (i.e., \emph{not (in from\_x\_y})
+        \item \emph{move}: it represents the agent movement through the map (i.e, the graph). It takes as parameters two objects \emph{from\_x\_y} and \emph{to\_x\_y}, which respectively represent the starting and the target cell of the movement. Then it checks if the agent is in \emph{from\_x\_y} (i.e., \emph{from\_x\_y}), if the object \emph{to\_x\_y} is a cell (i.e., \emph{cell to\_x\_y}) and if the two cells \emph{from\_x\_y} and \emph{to\_x\_y} are close (i.e., \emph{near from\_x\_y to\_x\_y}).
+        After that, the effect of the action consists in moving the agent to the target cell (i.e., \emph{in to\_x\_y}) and making sure that it is different from the starting cell (i.e., \emph{not (in from\_x\_y}).
     \end{itemize}
 \end{itemize}
 
-In the move action we avoid to put the precondition \emph{cell from\_x\_y} because we assume that the starting point of the plan taken from the intentions is a cell. After that, thanks to the combination of the precondition \emph{cell to\_x\_y} and the effect \emph{in to\_x\_y} we know that all the subsequently objects are cells.
+In the move action we avoid to put the precondition \emph{cell from\_x\_y} because we assume that the starting point of the plan taken from the intentions is a cell. After that, thanks to the combination of the precondition \emph{cell to\_x\_y} and the effect \emph{in to\_x\_y} we know that all the following objects are cells.
 
 Here is the domain description just described:
 \begin{verbatim}
@@ -154,14 +154,14 @@ Here is the domain description just described:
 
 The problem description is created in two different phases.
 First of all, when the map is initialized, we visit the matrix and for each cell that isn't a wall we identify it as \emph{c\_x\_y}, where \emph{x} and \emph{y} are its coordinates, and declare (i.e., add the proper objects and put the proper predicate in the \emph{init} section) that it is a cell (i.e., \emph{cell c\_x\_y}) and, for every neighboring cell (identified with the same notation) that is not a wall, we sign that they are close (i.e., \emph{near c\_x\_y c\_\(x_1\)\_\(y_1\)}).\\
-Then, when we have to compute a plan, we look at what cell \emph{c\_x\_y} the other agents are in and we treat each of them as walls (i.e., \emph{(not (cell c\_x\_y))}). After that, we declare in which cell \emph{c\_x\_y} the agent is (i.e., \emph{in c\_x\_y}) and we set the target cell \emph{c\_\(x_1\)\_\(y_1\)}, taken from the intentions as the goal of the plan (i.e., \emph{in c\_\(x_1\)\_\(y_1\)}).\\
+Then, when we have to compute a plan, we look at in which cells \emph{c\_x\_y} the other agents are in and we treat each of them as walls (i.e., \emph{(not (cell c\_x\_y))}). After that, we declare in which cell \emph{c\_x\_y} the agent is (i.e., \emph{in c\_x\_y}) and we set the target cell \emph{c\_\(x_1\)\_\(y_1\)}, taken from the intentions as the goal of the plan (i.e., \emph{in c\_\(x_1\)\_\(y_1\)}).\\
 These two actions are performed always taking the problem description of the map described before and updating it at the current situation as just described.
 
 \subsubsection{Implementation}
 
-The planner is executed as many time as possible. In fact, there are "threads" of the program that set up the targets and, when the agent is still, a the procedure \emph{pddlBFS} is called and the respective plans are computed.\\
+The planner is executed as many times as possible. In fact, there are "threads" of the program that set up the targets and, when the agent is waiting still, the procedure \emph{pddlBFS} is called and the respective plans are computed.\\
 
-After the planner has computed the plan we translate it in the language that the agent can understand. In fact, we parse the coordinates contained into the objects \emph{from\_x\_y} and \emph{to\_x\_y} and compute if the movement corresponds to \emph{up}, \emph{down}, \emph{left} or \emph{right}. After that we append to the plan the intention \emph{pickup} or \emph{putdown} computed before.\\
+After the planner has computed the plan, we translate it in the language that the agent can understand. In fact, we parse the coordinates contained into the objects \emph{from\_x\_y} and \emph{to\_x\_y} and compute if the movement corresponds to \emph{up}, \emph{down}, \emph{left} or \emph{right}. After that we append to the plan the intention \emph{pickup} or \emph{putdown} computed before.\\
 
 \subsubsection{PDDL example}
 
@@ -176,7 +176,7 @@ Consider this situation of the map: [0 wall, 1 free cell, 4 agent]
     ]
 \end{verbatim}
 
-The problem description is created is as follows:
+The problem description created is as follows:
 \begin{verbatim}
     (define (problem BFS)
         (:domain deliveroo)
@@ -216,13 +216,13 @@ And the plan that is created is:
 
 The choice to assign to the planner "only" the BFS task relies on two factors.
 \begin{itemize}
-    \item The first one is regards the complexity of PDDL solver. In fact, since it is exponential in the number of actions and polynomial in the number of states, reducing the number of actions to only one (the move action) we have reduced the overall complexity. In this way the latency is considerably reduced, since the major complexity of the solver is simplified, and the remaining latency are the one given by the polyomial part of the solver algorithm and the one of the network
-    \item The second one take into consideration how the PDDL planner works. Indeed, considering that starting from the starting cell (initial state) and moving through the nearby cells (action move) until it reaches the target cell (goal), the first plan found (i.e, the shortest) coincides with the shortest path bewteen the starting and the target cell
+    \item The first one is regarding the complexity of PDDL solver. In fact, since it is exponential in the number of actions and polynomial in the number of states, reducing the number of actions to only one (the move action) means reduce the overall complexity. In this way the latency is considerably reduced, since the major complexity of the solver is simplified, and the remaining latency is the sum of the one given by the polyomial part of the solver algorithm and the one of the network.
+    \item The second one takes into consideration how the PDDL planner works. Indeed, considering that starting from the starting cell (initial state) and moving through the nearby cells (action move) until it reaches the target cell (goal), the first plan found (i.e, the shortest) coincides with the shortest path bewteen the starting and the target cell
 \end{itemize}
 
 \subsubsection{Offline version}
 
-Since the online solver adds a latency due to the network latency we created an offline version of the BFS method that works completely synchronously with the code and reduce considerably the time taken by the planner to compute the plan.
+Since the online solver adds a latency due to the network latency we created an offline version of the BFS method that works completely synchronously with the code and reduces considerably the time taken by the planner to compute the plan.
 
 %\pagebreak
 
@@ -246,12 +246,12 @@ Once the communication is initialized, each agent will start sharing the informa
 \end{itemize}
 
 \subsection{Beliefs and Beliefs Revision}
-In addition to the belief sets of the single-agent architecture, some more sets were added to enable the implementation of more complex behavior and allow the coordination between the agents. Below is the list of new beliefs added:
+In addition to the belief sets of the single-agent architecture, some more sets were added to enable the implementation of more complex behavior and allow the coordination between the agents. Below is the list of the new beliefs added:
 \begin{itemize}
 \item \textbf{Joint Parcels Set}: We decided that the best and easiest way to implement a joint belief set was to let each agent have its own set that is sent via message when updated, and then the message handler has the duty to build the joint set. Only the complete set is used while planning. This allows us to reuse the implementation of the beliefs set of the single-agent architecture and to only build on top of it. The sharing of parcels positions and visibilities makes it less likely that an agent is left searching for targets to pickup.
 \item \textbf{Joint Agents Set}: The same design decision has been implemented for the agents beliefs set: the two different sets get synced up when an update is received.
 \item \textbf{Enemy Agents}: This belief set was implemented specifically to enable a particular intention that will be explainer later: the blocking strategy. This internal representation of enemies stores the information regarding up to two agents that are competing with our cooperating duo. The information stored consists of ids, scores, positions and visibilities, and is shared between our agents.
-\item \textbf{Ally Agent Representation}: This information is crucial to the implementation of multi-agent plans because it allows only one agent to perform all the computation necessary. The information store is not limited to coordinates and score, but extends to details about the current target and the total reward of parcels that are being carried.
+\item \textbf{Ally Agent Representation}: This information is crucial to the implementation of multi-agent plans because it allows only one agent to perform all the computation necessary. The information stored is not limited to coordinates and score, but extends to details about the current target and the total reward of parcels that are being carried.
 \end{itemize}
 
 Just like for the single-agent architecture, updates of each set happen asynchronously and are triggered by the events \verb|onYou|, \verb|onParcelsSensing| and \verb|onAgentsSensing|.
@@ -260,14 +260,14 @@ Just like for the single-agent architecture, updates of each set happen asynchro
 \subsection{Intentions and Intentions Revision}
 The default behavior of both agents, where no coordination is needed, is the same of the single-agent architecture. The utility functions put in place are the same with the only exception of an if statement added in the score evaluation of cells: if a cell is already the target of the other agent, its score is set to zero. This simple feature avoids conflicts that can happen when, for example, both agents choose the same parcel to pick up. Everything else we explained for the single-agent architecture remains valid for this part, with the only difference that since the information about the environment is shared, the effectiveness of the utility functions is improved.
 
-In the multi-agent architecture we identified two major possible multi-agent intentions, identified in the code with the terms \verb|exchange| and \verb|block|.
+In the multi-agent architecture we identified two major possible multi-agent intentions, called in the code with the terms \verb|exchange| and \verb|block|.
 \begin{itemize}
-\item \textbf{Exchange}: This intention allows the agent requesting an exchange to leave the parcels on the ground so that the other agent can pick them up. This intention is necessary when only one path to a delivery cell is possible for both agents, in this case the single-agent behavior would cause the agents to become obstacles on the map. This intention is chosen only when an agent sees that in its path to a delivery cell there is the other agent to which it can request the exchange. We implemented an utility function that allows the agent that receives the request of exchange to temporarily ignore the request and finish deliver the parcels carried first. In this case, the agent requesting the exchange will move towards the other agent until it terminates its own intention. Instead, if the request is immediately accepted, both agents move towards each other and perform the exchange when at one cell of distance. All the computation is done only by the agent requesting the exchange to simplify the task of coordination, while the second agent sets its target with the messages it receives by the first agent.
-\item \textbf{Block}: This strategy consists of physically blocking the only delivery cells on the map to now allow enemies to score any more points, and thus should consist in an automatic win. This intention is triggered when the information stored in the beliefs sets satisfy four conditions:
+\item \textbf{Exchange}: This intention allows the agent requesting an exchange to leave the parcels on the ground so that the other agent can pick them up. This intention is necessary when only one path to a delivery cell is possible for both agents, in this case the single-agent behavior would cause the agents to become obstacles for each other on the map. This intention is chosen only when an agent sees that in its path to a delivery cell there is the other agent to which it can request the exchange. We implemented an utility function that allows the agent that receives the request of exchange to temporarily ignore the request and finish delivering the parcels carried first. In this case, the agent requesting the exchange will move towards the other agent until it terminates its own intention. Instead, if the request is immediately accepted, both agents move towards each other and perform the exchange when at one cell of distance. All the computation is done only by the agent requesting the exchange to simplify the task of coordination, while the second agent sets its target with the messages it receives by the first agent.
+\item \textbf{Block}: This strategy consists of physically blocking the only delivery cells on the map to not allow enemies to score any more points, and thus resulting in an automatic win. This intention is triggered when the information stored in the beliefs sets satisfy four conditions:
 \begin{itemize}
 \item The map has only 2 delivery cells and both are reachable for our agents;
 \item Our total score is greater that the opponent's total score;
-\item We see both enemy agents, this allows to have certain information about score and position on the map
+\item We see both enemy agents, this allows to have certain information about score and position on the map;
 \item The path to both delivery cells for our agents is shorter than the path of enemy agents.
 \end{itemize}
 When these four conditions are together satisfied each agent picks the closest delivery cell as the target. This should result in a situation in which no team is able to deliver any cell. The computation and the checks for satisfiability of the conditions are carried on by one agent only to simplify coordination.
@@ -276,7 +276,7 @@ When these four conditions are together satisfied each agent picks the closest d
  
 \subsection{Planning}
 
-In this multi-agent version the PDDL planning strategy is basically the same as the single-agent one. The parts that have been changed relies on the fact that now the agent has also to interact with another ally. More precisely, after a communication with the other allied agent and based on the intention and the target, now the planner has to create also plans designed to makes exchanges of parcels and blocking strategies to avoid that the enemies gain more points. This is done through various combination of the PDDL BFS used in the single-agent version.\\
+In this multi-agent version the PDDL planning strategy is basically the same as the single-agent one. The parts that have been changed rely on the fact that now the agent has also to interact with another ally. More precisely, after a communication with the other allied agent and based on the intention and the target, now the planner has to create also plans designed to make exchanges of parcels and blocking strategies to avoid that the enemies gain more points. This is done through various combination of the PDDL BFS used in the single-agent version.\\
 Moreover, because of the increase in code complexity due to the increase in intentions to be handled, the planner now isn't called as much as possible, but only when the target (so the intentions) changes or after a certain amount of time.
 
 %\bibliographystyle{abbrv}
